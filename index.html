@@ -1460,7 +1460,11 @@
         }
 
         async function handleInstallPWA() {
-            if (!deferredInstallPrompt || isStandaloneInstalled) return;
+            if (isStandaloneInstalled) return;
+            if (!deferredInstallPrompt) {
+                alert('Install is not available yet on this browser/session. Refresh and try again after using the app for a few seconds.');
+                return;
+            }
             deferredInstallPrompt.prompt();
             const result = await deferredInstallPrompt.userChoice;
             if (result && result.outcome !== 'accepted') {
@@ -1535,13 +1539,24 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 18000);
             try {
+                const body = new URLSearchParams();
+                body.set('action', action);
+                body.set('payload', JSON.stringify(payload));
+
                 const res = await fetch(BACKEND_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, payload }),
+                    body,
                     signal: controller.signal
                 });
-                const data = await res.json();
+                const raw = await res.text();
+                let data = null;
+                try {
+                    data = JSON.parse(raw);
+                } catch (_) {
+                    const err = new Error('Backend returned a non-JSON response. Check Apps Script deployment access and URL.');
+                    err.code = 'INVALID_BACKEND_RESPONSE';
+                    throw err;
+                }
                 if (!res.ok || !data || data.success === false) {
                     const err = new Error((data && data.message) || 'Request failed');
                     err.code = data && data.code ? data.code : 'REQUEST_FAILED';
