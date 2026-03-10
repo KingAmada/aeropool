@@ -14,13 +14,17 @@
     <meta name="robots" content="index, follow">
     <meta name="language" content="English">
     <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AeroPool">
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://aeropool.app/">
 
-    <!-- Favicon / Touch Icons (SVG Data URI for zero-dependency loading) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+    <!-- PWA -->
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg">
 
     <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
     <meta property="og:type" content="website">
@@ -178,12 +182,28 @@
         
         .profile-img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: inherit; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; cursor: pointer; }
         .profile-img-container:hover .profile-img-overlay { opacity: 1; }
+        #app-shell {
+            width: min(100vw, 430px);
+            height: 100dvh;
+            max-height: 100dvh;
+        }
+        #dest-real-map, #matched-real-map, #real-map-container { width: 100%; height: 100%; }
+        @media (min-width: 768px) {
+            #app-shell {
+                height: min(96dvh, 880px);
+            }
+        }
+        @media (max-height: 760px) {
+            #screen-destination #dest-heading { font-size: 2rem; margin-bottom: 1rem; }
+            #screen-destination .dest-bottom-sheet { padding: 1rem; border-radius: 1.5rem; }
+            #screen-destination #btn-request { margin-top: 1rem; padding-top: 0.9rem; padding-bottom: 0.9rem; }
+        }
     </style>
 </head>
 <body class="min-h-screen bg-slate-800 flex items-center justify-center p-0 md:p-6 selection:bg-blue-300 relative">
  
     <!-- Device Frame -->
-    <div class="w-full md:max-w-[430px] h-[100dvh] md:h-[880px] bg-[#e8eef3] md:rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative overflow-hidden md:border-[12px] border-slate-900 flex flex-col text-slate-800">
+    <div id="app-shell" class="w-full bg-[#e8eef3] md:rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative overflow-hidden md:border-[12px] border-slate-900 flex flex-col text-slate-800">
         
         <!-- ==================== AI VERIFICATION OVERLAY ==================== -->
         <div id="verification-overlay" class="absolute inset-0 z-[200] hidden flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md px-6 animate-pop-in">
@@ -226,7 +246,7 @@
         </div>
  
         <!-- ==================== HOME SCREEN ==================== -->
-        <div id="screen-home" class="app-screen flex flex-col h-full relative p-6 pt-10 animate-pop-in">
+        <div id="screen-home" class="app-screen flex flex-col h-full relative p-6 pt-10 animate-pop-in overflow-y-auto no-scrollbar pb-28">
             <div class="flex justify-between items-center mb-8 shrink-0">
                 <div class="text-3xl font-black text-slate-700 tracking-tighter drop-shadow-sm flex items-center gap-2">
                     Aero<span class="text-blue-500">Pool</span>
@@ -291,8 +311,8 @@
                 </div>
             </div>
  
-            <div class="space-y-6 flex-1 flex flex-col justify-center pb-20">
-                <button id="btn-role-driver" onclick="handleRoleSelect('driver')" class="glass-panel w-full relative p-8 hover:shadow-[8px_8px_16px_#c4d0dc,-8px_-8px_16px_#ffffff] active:shadow-[inset_8px_8px_16px_#c4d0dc,inset_-8px_-8px_16px_#ffffff] transition-all duration-300 flex flex-col items-center justify-center gap-3 group">
+            <div class="space-y-5 flex-1 flex flex-col justify-start pt-1 pb-8">
+                <button id="btn-role-driver" onclick="handleRoleSelect('driver')" class="glass-panel w-full relative p-7 hover:shadow-[8px_8px_16px_#c4d0dc,-8px_-8px_16px_#ffffff] active:shadow-[inset_8px_8px_16px_#c4d0dc,inset_-8px_-8px_16px_#ffffff] transition-all duration-300 flex flex-col items-center justify-center gap-3 group">
                     <div class="relative inline-block text-7xl drop-shadow-[0_12px_12px_rgba(0,0,0,0.25)] group-hover:scale-110 transition-transform">🚗</div>
                     <div class="text-center mt-2">
                         <h2 class="text-3xl font-black text-slate-800 mb-1 drop-shadow-sm">I'm Driving</h2>
@@ -300,7 +320,7 @@
                     </div>
                 </button>
  
-                <button id="btn-role-passenger" onclick="handleRoleSelect('passenger')" class="glass-panel w-full relative p-8 hover:shadow-[8px_8px_16px_#c4d0dc,-8px_-8px_16px_#ffffff] active:shadow-[inset_8px_8px_16px_#c4d0dc,inset_-8px_-8px_16px_#ffffff] transition-all duration-300 flex flex-col items-center justify-center gap-3 group">
+                <button id="btn-role-passenger" onclick="handleRoleSelect('passenger')" class="glass-panel w-full relative p-7 hover:shadow-[8px_8px_16px_#c4d0dc,-8px_-8px_16px_#ffffff] active:shadow-[inset_8px_8px_16px_#c4d0dc,inset_-8px_-8px_16px_#ffffff] transition-all duration-300 flex flex-col items-center justify-center gap-3 group">
                     <div class="relative inline-block text-7xl drop-shadow-[0_12px_12px_rgba(0,0,0,0.25)] group-hover:scale-110 transition-transform">🧳</div>
                     <div class="text-center mt-2">
                         <h2 class="text-3xl font-black text-slate-800 mb-1 drop-shadow-sm">Need a Ride</h2>
@@ -450,48 +470,23 @@
  
             <div class="absolute inset-0 bg-gradient-to-b from-[#e8eef3]/80 via-[#e8eef3]/20 to-[#e8eef3]/80 pointer-events-none z-10"></div>
  
-            <div class="relative z-20 p-6 pt-10 flex-1 flex flex-col pointer-events-auto">
-                <button onclick="setStep('idle', 'home')" class="w-14 h-14 rounded-full bg-[#e8eef3] shadow-[6px_6px_12px_#c4d0dc,-6px_-6px_12px_#ffffff] flex items-center justify-center mb-6 active:shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] transition-all border-2 border-white cursor-pointer shrink-0">
+            <div class="relative z-20 p-4 sm:p-6 pt-8 sm:pt-10 pb-28 sm:pb-32 flex-1 flex flex-col pointer-events-auto">
+                <button onclick="setStep('idle', 'home')" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#e8eef3] shadow-[6px_6px_12px_#c4d0dc,-6px_-6px_12px_#ffffff] flex items-center justify-center mb-4 sm:mb-6 active:shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] transition-all border-2 border-white cursor-pointer shrink-0">
                     <i data-lucide="chevron-left" class="text-slate-600" width="28"></i>
                 </button>
  
-                <h1 id="dest-heading" class="text-4xl font-black text-slate-800 mb-6 drop-shadow-sm leading-tight whitespace-pre-line shrink-0">
+                <h1 id="dest-heading" class="text-3xl sm:text-4xl font-black text-slate-800 mb-4 sm:mb-6 drop-shadow-sm leading-tight whitespace-pre-line shrink-0">
                     Where in the city<br>are you heading?
                 </h1>
  
-                <div class="glass-panel p-6 mb-auto relative z-30 shadow-[0_20px_40px_rgba(0,0,0,0.1),12px_12px_24px_#c4d0dc,-12px_-12px_24px_#ffffff]">
-                    
-                    <div class="flex items-center gap-4 bg-white/60 backdrop-blur-md p-3 rounded-3xl mb-4 shadow-sm relative z-30">
-                        <div class="w-12 h-12 bg-[#e8eef3] rounded-2xl flex items-center justify-center shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] shrink-0">
-                            <i data-lucide="map-pin" class="text-blue-500" width="20"></i>
-                        </div>
-                        <div class="flex-1 w-full">
-                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Pickup Location</p>
-                            <div class="relative w-full">
-                                <select id="pickup-location" class="w-full bg-transparent font-bold text-slate-800 outline-none appearance-none cursor-pointer">
-                                    <option value="International Arrival">International Arrival</option>
-                                    <option value="Local Departure">Local Departure</option>
-                                    <option value="Parking Lot">Parking Lot</option>
-                                    <option value="Terminal A">Terminal A</option>
-                                    <option value="Terminal B">Terminal B</option>
-                                    <option value="Terminal C">Terminal C</option>
-                                    <option value="Terminal D">Terminal D</option>
-                                    <option value="On my way">On my way</option>
-                                </select>
-                                <div class="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
-                            </div>
-                        </div>
-                    </div>
- 
-                    <div class="w-1 h-6 border-l-[3px] border-dashed border-blue-300 ml-8 my-1"></div>
- 
+                <div class="mt-auto dest-bottom-sheet glass-panel p-4 sm:p-6 relative z-30 shadow-[0_20px_40px_rgba(0,0,0,0.1),12px_12px_24px_#c4d0dc,-12px_-12px_24px_#ffffff]">
                     <!-- Searchable Destination Input -->
-                    <div class="flex items-center gap-4 relative mt-2 z-40">
+                    <div class="flex items-center gap-3 sm:gap-4 relative z-40">
                         <div class="w-12 flex justify-center text-red-500 drop-shadow-[0_4px_4px_rgba(239,68,68,0.4)] shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                         </div>
                         <div class="w-full relative">
-                            <input type="text" id="dest-search-input" placeholder="Search destination area..." class="input-3d px-5 py-4 focus:ring-4 ring-blue-400/30 bg-white/80 backdrop-blur-md" oninput="filterDestinations()" onclick="filterDestinations()" autocomplete="off">
+                            <input type="text" id="dest-search-input" placeholder="Search destination area..." class="input-3d px-4 sm:px-5 py-3.5 sm:py-4 focus:ring-4 ring-blue-400/30 bg-white/80 backdrop-blur-md" oninput="filterDestinations()" onclick="filterDestinations()" autocomplete="off">
                             
                             <!-- Custom Dropdown -->
                             <div id="dest-dropdown" class="hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.15)] border-2 border-slate-100 max-h-60 overflow-y-auto z-50">
@@ -501,7 +496,7 @@
                     </div>
  
                     <!-- Driver Trip Options -->
-                    <div id="driver-options-container" class="hidden flex-col gap-4 mt-6 pt-4 border-t-2 border-dashed border-slate-300/50">
+                    <div id="driver-options-container" class="hidden flex-col gap-4 mt-5 pt-4 border-t-2 border-dashed border-slate-300/50">
                         <h3 class="font-black text-slate-700 mb-1">Trip Details</h3>
                         
                         <div class="flex gap-4">
@@ -541,9 +536,31 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="flex items-center gap-3 sm:gap-4 bg-white/70 backdrop-blur-md p-3 rounded-2xl mt-5 shadow-sm relative z-30 border border-white/70">
+                        <div class="w-10 h-10 bg-[#e8eef3] rounded-xl flex items-center justify-center shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] shrink-0">
+                            <i data-lucide="map-pin" class="text-blue-500" width="18"></i>
+                        </div>
+                        <div class="flex-1 w-full">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Pickup Location</p>
+                            <div class="relative w-full">
+                                <select id="pickup-location" class="w-full bg-transparent font-bold text-slate-800 outline-none appearance-none cursor-pointer pr-5">
+                                    <option value="International Arrival">International Arrival</option>
+                                    <option value="Local Departure">Local Departure</option>
+                                    <option value="Parking Lot">Parking Lot</option>
+                                    <option value="Terminal A">Terminal A</option>
+                                    <option value="Terminal B">Terminal B</option>
+                                    <option value="Terminal C">Terminal C</option>
+                                    <option value="Terminal D">Terminal D</option>
+                                    <option value="On my way">On my way</option>
+                                </select>
+                                <div class="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btn-request" onclick="startSearching()" class="btn-primary-3d mt-5 shrink-0 relative z-20">Request City Ride</button>
                 </div>
- 
-                <button id="btn-request" onclick="startSearching()" class="btn-primary-3d mt-8 shrink-0 relative z-20">Request City Ride</button>
             </div>
         </div>
  
@@ -682,7 +699,7 @@
         </div>
  
         <!-- ==================== PROFILE TAB ==================== -->
-        <div id="screen-profile" class="app-screen hidden-screen flex flex-col h-full relative p-6 pt-10 animate-pop-in pb-24 overflow-y-auto no-scrollbar">
+        <div id="screen-profile" class="app-screen hidden-screen flex flex-col h-full relative p-6 pt-10 animate-pop-in pb-32 overflow-y-auto no-scrollbar">
             <h1 class="text-3xl font-black text-slate-800 mb-6 drop-shadow-sm">My Profile</h1>
             
             <div class="flex flex-col items-center mb-8">
@@ -782,7 +799,7 @@
                 </div>
             </div>
  
-            <button onclick="handleLogout()" class="btn-danger-3d mt-12 flex items-center justify-center gap-2 shrink-0">
+            <button onclick="handleLogout()" class="btn-danger-3d mt-10 mb-6 flex items-center justify-center gap-2 shrink-0">
                 <i data-lucide="log-out" width="20"></i> Log Out
             </button>
         </div>
@@ -937,9 +954,9 @@
             watchId: null,
             rideDetails: { pickup: 'International Arrival', area: '', price: 0, seats: '1', departure: 'Leaving now', dropStyle: 'Hub drop', passengerPhoto: null },
             
-            destMapInstance: null, destMarkers: [],
+            destMapInstance: null, destMarkers: [], destRouteSource: false,
             matchMapInstance: null, matchPassengerMarker: null, matchDriverMarker: null, approachInterval: null, driverDistance: null,
-            trackMapInstance: null, trackMarkerInstance: null, trackRouteSource: false,
+            trackMapInstance: null, trackMarkerInstance: null, trackRouteSource: false, trackMapLoaded: false,
             
             selectedDriver: null,
             sortBy: 'best'
@@ -1150,6 +1167,12 @@
             renderHistory();
             populateBanks();
             updateUI();
+
+            if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+                navigator.serviceWorker.register('./sw.js').catch((err) => {
+                    console.warn('Service worker registration failed:', err);
+                });
+            }
             
             // Close dropdown if clicked outside
             document.addEventListener('click', function(e) {
@@ -1166,7 +1189,8 @@
             document.querySelectorAll('.app-screen').forEach(el => el.classList.add('hidden-screen'));
             
             const bottomNav = document.getElementById('bottom-nav');
-            if (state.user && state.step === 'idle') {
+            const hideBottomNavSteps = ['auth', 'searching', 'matched', 'tracking'];
+            if (state.user && !hideBottomNavSteps.includes(state.step)) {
                 bottomNav.classList.remove('hidden');
                 updateNavStyles();
             } else {
@@ -1234,7 +1258,15 @@
             });
         }
  
-        function setTab(tab) { state.activeTab = tab; updateUI(); }
+        function setTab(tab) {
+            // Allow bottom nav to return user to the main tab shell from flow screens.
+            if (state.user && state.step !== 'idle') {
+                setStep('idle', tab);
+                return;
+            }
+            state.activeTab = tab;
+            updateUI();
+        }
  
         function setStep(newStep, newTab = null) {
             state.step = newStep;
@@ -1963,9 +1995,11 @@
             document.getElementById('pickup-location').onchange = function() {
                 const val = this.value;
                 const coords = pickupCoords[val] || state.currentLocation;
+                state.rideDetails.pickup = val;
                 if(state.destMapInstance) {
                     state.destMapInstance.flyTo({center: [coords.lng, coords.lat], zoom: 16});
                 }
+                updateDestinationRoutePreview();
             };
  
             setTimeout(initDestinationMap, 100);
@@ -2023,6 +2057,7 @@
             document.getElementById('dest-dropdown').classList.add('hidden');
             state.rideDetails.area = area;
             state.rideDetails.price = price;
+            updateDestinationRoutePreview();
         }
  
         function updateDepartureDisplay(val) {
@@ -2070,6 +2105,78 @@
                         .setLngLat([loc.lng + off[1], loc.lat + off[0]])
                         .addTo(state.destMapInstance));
                 });
+            }
+
+            updateDestinationRoutePreview();
+        }
+
+        function clearDestinationRoutePreview() {
+            if (!state.destMapInstance) return;
+            if (state.destMapInstance.getLayer('dest-route')) {
+                state.destMapInstance.removeLayer('dest-route');
+            }
+            if (state.destMapInstance.getSource('dest-route')) {
+                state.destMapInstance.removeSource('dest-route');
+            }
+            state.destRouteSource = false;
+        }
+
+        function updateDestinationRoutePreview() {
+            if (!state.destMapInstance || state.role !== 'passenger') return;
+
+            const pickupName = document.getElementById('pickup-location').value || state.rideDetails.pickup;
+            const pickup = pickupCoords[pickupName] || state.currentLocation;
+            const destData = abujaDestinations.find(d => d.area === state.rideDetails.area);
+
+            if (!destData) {
+                clearDestinationRoutePreview();
+                return;
+            }
+
+            const start = [pickup.lng, pickup.lat];
+            const end = [destData.lng, destData.lat];
+
+            const drawRoute = () => {
+                fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${mapboxToken}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.routes || !data.routes[0] || !data.routes[0].geometry) return;
+                        const routeGeo = data.routes[0].geometry;
+                        const routeFeature = {
+                            type: 'Feature',
+                            properties: {},
+                            geometry: routeGeo
+                        };
+
+                        if (state.destRouteSource && state.destMapInstance.getSource('dest-route')) {
+                            state.destMapInstance.getSource('dest-route').setData(routeFeature);
+                        } else {
+                            clearDestinationRoutePreview();
+                            state.destMapInstance.addSource('dest-route', {
+                                type: 'geojson',
+                                data: routeFeature
+                            });
+                            state.destMapInstance.addLayer({
+                                id: 'dest-route',
+                                type: 'line',
+                                source: 'dest-route',
+                                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                                paint: { 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.8 }
+                            });
+                            state.destRouteSource = true;
+                        }
+
+                        const coordinates = routeGeo.coordinates;
+                        const bounds = coordinates.reduce((b, coord) => b.extend(coord), new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+                        state.destMapInstance.fitBounds(bounds, { padding: 60 });
+                    })
+                    .catch(err => console.warn('Destination route preview error:', err));
+            };
+
+            if (state.destMapInstance.isStyleLoaded()) {
+                drawRoute();
+            } else {
+                state.destMapInstance.once('load', drawRoute);
             }
         }
  
@@ -2213,7 +2320,7 @@
                 </div>
             `;
             
-            initMatchMap();
+            initMatchMap(false);
             setStep('matched');
  
             setTimeout(() => {
@@ -2224,7 +2331,7 @@
         }
  
         // --- LIVE PRE-RIDE MAP --- //
-        function initMatchMap() {
+        function initMatchMap(startApproach = false) {
             const pLoc = state.currentLocation;
             let dLoc = { lat: pLoc.lat - 0.015, lng: pLoc.lng - 0.015 };
             
@@ -2261,24 +2368,28 @@
             state.driverDistance = 100;
             
             if(state.approachInterval) clearInterval(state.approachInterval);
-            state.approachInterval = setInterval(() => {
-                dLoc.lat += (pLoc.lat - dLoc.lat) * 0.15;
-                dLoc.lng += (pLoc.lng - dLoc.lng) * 0.15;
-                state.matchDriverMarker.setLngLat([dLoc.lng, dLoc.lat]);
-                
-                state.driverDistance -= 5;
-                const startBtn = document.getElementById('btn-start-ride');
-                const waitingText = document.getElementById('waiting-text');
-                
-                if(startBtn && state.driverDistance <= 20) {
-                    startBtn.disabled = false;
-                    if(waitingText) {
-                        waitingText.innerText = state.role === 'driver' ? "Passenger reached!" : "Driver has arrived!";
-                        waitingText.classList.remove('animate-pulse');
-                        waitingText.classList.add('text-green-600');
+            if (startApproach) {
+                state.approachInterval = setInterval(() => {
+                    dLoc.lat += (pLoc.lat - dLoc.lat) * 0.15;
+                    dLoc.lng += (pLoc.lng - dLoc.lng) * 0.15;
+                    state.matchDriverMarker.setLngLat([dLoc.lng, dLoc.lat]);
+                    
+                    state.driverDistance -= 5;
+                    const startBtn = document.getElementById('btn-start-ride');
+                    const waitingText = document.getElementById('waiting-text');
+                    
+                    if(startBtn && state.driverDistance <= 20) {
+                        startBtn.disabled = false;
+                        if(waitingText) {
+                            waitingText.innerText = state.role === 'driver' ? "Passenger reached!" : "Driver has arrived!";
+                            waitingText.classList.remove('animate-pulse');
+                            waitingText.classList.add('text-green-600');
+                        }
                     }
-                }
-            }, 1000);
+                }, 1000);
+            } else {
+                state.approachInterval = null;
+            }
             
             const sw = [Math.min(pLoc.lng, dLoc.lng), Math.min(pLoc.lat, dLoc.lat)];
             const ne = [Math.max(pLoc.lng, dLoc.lng), Math.max(pLoc.lat, dLoc.lat)];
@@ -2288,7 +2399,7 @@
  
         // --- COMPACT DRIVER REQUEST UI & MATCHED SCREEN --- //
         function setupMatchedDriverScreen() {
-            initMatchMap();
+            initMatchMap(false);
             
             const container = document.getElementById('matched-card-container');
             container.innerHTML = `
@@ -2351,17 +2462,8 @@
                 <p id="waiting-text" class="text-center text-sm font-bold text-slate-500 animate-pulse">Drive to passenger location...</p>
                 <button id="btn-start-ride" onclick="startTracking()" class="btn-primary-3d w-full" disabled>Start Ride</button>
             `;
-            
-            if (state.driverDistance <= 20) {
-                const startBtn = document.getElementById('btn-start-ride');
-                const waitingText = document.getElementById('waiting-text');
-                if (startBtn) startBtn.disabled = false;
-                if (waitingText) {
-                    waitingText.innerText = "Passenger reached!";
-                    waitingText.classList.remove('animate-pulse');
-                    waitingText.classList.add('text-green-600');
-                }
-            }
+
+            initMatchMap(true);
             lucide.createIcons();
         }
  
@@ -2407,6 +2509,7 @@
                     <button id="btn-start-ride" onclick="startTracking()" class="btn-primary-3d w-full" disabled>Start Ride</button>
                 </div>
             `;
+            initMatchMap(true);
             lucide.createIcons();
         }
         
@@ -2443,23 +2546,34 @@
             document.getElementById('tracking-subtext').innerText = `Arriving at ${state.rideDetails.area}`;
             
             setTimeout(() => {
-                if ("geolocation" in navigator) {
-                    navigator.geolocation.getCurrentPosition((pos) => {
-                        state.currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        initOrUpdateTrackingMap(state.currentLocation);
-                    }, (err) => {
-                        initOrUpdateTrackingMap(state.currentLocation);
-                    });
- 
+                // Always render the map from the last known location first.
+                initOrUpdateTrackingMap(state.currentLocation);
+
+                if (!("geolocation" in navigator)) return;
+
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    state.currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    initOrUpdateTrackingMap(state.currentLocation);
+                }, () => {
+                    console.warn("GPS Position Error");
+                });
+
+                if (state.watchId) {
+                    navigator.geolocation.clearWatch(state.watchId);
+                    state.watchId = null;
+                }
+
+                try {
                     state.watchId = navigator.geolocation.watchPosition(
                         (position) => {
                             state.currentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
                             initOrUpdateTrackingMap(state.currentLocation);
                         },
-                        (error) => console.warn("GPS Watch Error"), { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                        () => console.warn("GPS Watch Error"),
+                        { enableHighAccuracy: false, maximumAge: 15000, timeout: 10000 }
                     );
-                } else {
-                    initOrUpdateTrackingMap(state.currentLocation);
+                } catch (err) {
+                    console.warn("GPS Watch Setup Error");
                 }
             }, 300);
         }
@@ -2476,6 +2590,7 @@
                     zoom: 13,
                     accessToken: mapboxToken
                 });
+                state.trackMapLoaded = false;
  
                 const trackEl = document.createElement('div');
                 trackEl.innerHTML = `<div class="w-8 h-8 bg-blue-500 rounded-full border-4 border-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] flex items-center justify-center text-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`;
@@ -2490,12 +2605,18 @@
                     .setLngLat(destLoc)
                     .addTo(state.trackMapInstance);
  
-                fetchRoute([loc.lng, loc.lat], destLoc);
+                state.trackMapInstance.once('load', () => {
+                    state.trackMapLoaded = true;
+                    fetchRoute([loc.lng, loc.lat], destLoc);
+                });
  
             } else {
                 state.trackMapInstance.resize();
                 state.trackMarkerInstance.setLngLat([loc.lng, loc.lat]);
-                fetchRoute([loc.lng, loc.lat], destLoc);
+                if (state.trackMapLoaded || state.trackMapInstance.isStyleLoaded()) {
+                    state.trackMapLoaded = true;
+                    fetchRoute([loc.lng, loc.lat], destLoc);
+                }
             }
         }
  
@@ -2503,6 +2624,7 @@
             fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${mapboxToken}`)
                 .then(res => res.json())
                 .then(data => {
+                    if (!data.routes || !data.routes[0] || !data.routes[0].geometry) return;
                     const routeGeo = data.routes[0].geometry;
  
                     if (state.trackRouteSource) {
@@ -2586,6 +2708,7 @@
                 state.trackMapInstance.remove();
                 state.trackMapInstance = null;
                 state.trackRouteSource = false;
+                state.trackMapLoaded = false;
             }
  
             renderHistory();
