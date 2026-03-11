@@ -783,7 +783,7 @@
                             </div>
                             <div class="overflow-hidden">
                                 <h4 id="track-user-name" class="font-black text-slate-800 text-xl truncate">Sarah T.</h4>
-                                <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 truncate">Verified User • ABC-123</p>
+                                <p id="track-user-verification" class="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 truncate">Verified User • Ratings 5/5</p>
                             </div>
                         </div>
                         <div class="w-14 h-14 rounded-full bg-[#e8eef3] flex items-center justify-center shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] text-blue-500 border border-white shrink-0">
@@ -1846,7 +1846,7 @@
             
             const shareBtn = document.getElementById('btn-share-ride');
             if(shareBtn) {
-                if(state.step === 'tracking' && state.role === 'passenger') {
+                if(state.step === 'tracking' && (state.role === 'passenger' || state.role === 'driver')) {
                     shareBtn.classList.remove('hidden'); shareBtn.classList.add('flex');
                 } else {
                     shareBtn.classList.add('hidden'); shareBtn.classList.remove('flex');
@@ -3430,13 +3430,16 @@
             
             const trackAvatar = document.getElementById('track-avatar');
             const trackName = document.getElementById('track-user-name');
+            const trackVerification = document.getElementById('track-user-verification');
             
             if (state.role === 'driver') {
                 trackAvatar.innerHTML = `<img src="https://ui-avatars.com/api/?name=Sarah+T&background=0D8ABC&color=fff" class="w-full h-full object-cover" alt="Sarah"/>`;
                 trackName.innerText = 'Sarah T.';
+                if (trackVerification) trackVerification.innerText = getPassengerVerificationText();
             } else {
                 trackAvatar.innerHTML = state.selectedDriver ? state.selectedDriver.avatar : '👨';
                 trackName.innerText = state.selectedDriver ? state.selectedDriver.name : 'Driver';
+                if (trackVerification) trackVerification.innerText = getDriverVerificationText();
             }
  
             document.getElementById('tracking-status-title').innerText = "Approaching destination";
@@ -3570,12 +3573,47 @@
             if (state.role === 'passenger' && state.selectedDriver) {
                 const d = state.selectedDriver;
                 message = `I'm on my way to ${state.rideDetails.area} via Poolily! \n\nDriver: ${d.name}\nVehicle: ${d.car} (${d.plate})\nTrack my ride: https://poolily.app/track/demo-1234`;
+            } else if (state.role === 'driver') {
+                const fare = state.rideDetails && state.rideDetails.price ? `₦${Number(state.rideDetails.price).toLocaleString()}` : 'pending fare';
+                const verificationText = getPassengerVerificationText();
+                message = `I accepted a ride to ${state.rideDetails.area} on Poolily.\n\nPassenger status: ${verificationText}\nFare: ${fare}\nTrip share: https://poolily.app/track/demo-1234`;
             }
             
             if(message) {
                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
             }
+        }
+
+        function getPassengerVerificationSummary() {
+            const checks = [
+                { key: 'Phone', passed: true },
+                { key: 'ID', passed: true },
+                { key: 'GPS', passed: !!(state.currentLocation && Number.isFinite(state.currentLocation.lat) && Number.isFinite(state.currentLocation.lng)) },
+                { key: 'Amount', passed: Number(state.rideDetails.price) > 0 },
+                { key: 'Photo', passed: !!state.rideDetails.passengerPhoto }
+            ];
+            const score = checks.filter(c => c.passed).length;
+            return { checks, score, total: checks.length };
+        }
+
+        function getPassengerVerificationText() {
+            const summary = getPassengerVerificationSummary();
+            return summary.score > 0 ? `Verified User • Ratings ${summary.score}/${summary.total}` : 'Unverified';
+        }
+
+        function getDriverVerificationText() {
+            if (!state.selectedDriver) return 'Unverified';
+            const badgeText = (state.selectedDriver.badges || []).join(' ').toLowerCase();
+            const checks = [
+                badgeText.includes('phone verified'),
+                badgeText.includes('id verified'),
+                badgeText.includes('plate'),
+                Number(state.selectedDriver.rating || 0) >= 4.5,
+                !!state.selectedDriver.phone
+            ];
+            const score = checks.filter(Boolean).length;
+            return score > 0 ? `Verified User • Ratings ${score}/5` : 'Unverified';
         }
  
         function endTrip() {
