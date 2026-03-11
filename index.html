@@ -735,12 +735,12 @@
         <div id="screen-matched" class="app-screen hidden-screen flex flex-col h-full relative overflow-hidden animate-pop-in bg-[#d0dbe6]">
             <!-- Live Pre-Ride Map Background -->
             <div class="absolute inset-0 z-0 bg-[#e8eef3]">
-                <div id="matched-real-map" class="w-full h-full opacity-70 saturate-150 contrast-125"></div>
-                <div class="absolute inset-0 bg-[#e8eef3]/20 pointer-events-none z-10"></div>
-                <div class="absolute inset-0 bg-blue-500/5 mix-blend-overlay pointer-events-none z-10"></div>
+                <div id="matched-real-map" class="w-full h-full opacity-95 saturate-125 contrast-110"></div>
+                <div class="absolute inset-0 bg-[#e8eef3]/8 pointer-events-none z-10"></div>
+                <div class="absolute inset-0 bg-blue-500/3 mix-blend-overlay pointer-events-none z-10"></div>
             </div>
             
-            <div class="absolute inset-0 bg-gradient-to-t from-[#e8eef3] via-[#e8eef3]/50 to-transparent z-0 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#e8eef3]/70 via-[#e8eef3]/20 to-transparent z-0 pointer-events-none"></div>
  
             <div class="mt-auto relative z-10 p-5 animate-slide-up pb-8 w-full">
                 <!-- DYNAMIC DRIVER / PASSENGER MATCH CARD -->
@@ -755,11 +755,11 @@
             <!-- Real Mapbox Map Container -->
             <div class="absolute inset-0 z-0 bg-[#e8eef3]">
                 <div id="real-map-container" class="w-full h-full"></div>
-                <div class="absolute inset-0 bg-[#e8eef3]/20 pointer-events-none z-10"></div>
-                <div class="absolute inset-0 bg-blue-500/5 mix-blend-overlay pointer-events-none z-10"></div>
+                <div class="absolute inset-0 bg-[#e8eef3]/8 pointer-events-none z-10"></div>
+                <div class="absolute inset-0 bg-blue-500/3 mix-blend-overlay pointer-events-none z-10"></div>
             </div>
- 
-            <div class="absolute inset-0 bg-gradient-to-b from-[#e8eef3]/95 via-transparent to-[#e8eef3]/95 z-10 pointer-events-none"></div>
+
+            <div class="absolute inset-0 bg-gradient-to-b from-[#e8eef3]/70 via-transparent to-[#e8eef3]/75 z-10 pointer-events-none"></div>
  
             <!-- Tracking Card Elements -->
             <div class="relative z-30 p-6 pt-12 animate-slide-up flex justify-between items-start">
@@ -783,7 +783,7 @@
                             </div>
                             <div class="overflow-hidden">
                                 <h4 id="track-user-name" class="font-black text-slate-800 text-xl truncate">Sarah T.</h4>
-                                <p id="track-user-verification" class="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 truncate">Verified User • Ratings 5/5</p>
+                                <p id="track-user-verification" class="text-slate-500 text-xs font-bold uppercase tracking-wider mt-1 truncate">Verified User • 5/5</p>
                             </div>
                         </div>
                         <div class="w-14 h-14 rounded-full bg-[#e8eef3] flex items-center justify-center shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] text-blue-500 border border-white shrink-0">
@@ -1075,6 +1075,19 @@
                 <button onclick="closeSystemMessage()" class="btn-primary-3d mt-5 !py-3 w-full">Okay</button>
             </div>
         </div>
+
+        <div id="cancel-trip-modal" class="fixed inset-0 bg-slate-900/75 z-[360] hidden items-center justify-center p-6 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+            <div id="cancel-trip-inner" class="w-full max-w-[360px] bg-[#e8eef3] rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-white/70 transform scale-95 transition-transform duration-300">
+                <h4 class="text-xl font-black text-slate-800 mb-1">Cancel Trip</h4>
+                <p id="cancel-trip-subtitle" class="text-xs font-bold text-slate-500 mb-4">Tell us why you want to cancel this trip.</p>
+                <div id="cancel-trip-options" class="space-y-2"></div>
+                <textarea id="cancel-trip-other" class="hidden input-3d w-full px-4 py-3 mt-3 text-sm font-bold bg-white/80" rows="3" placeholder="Please type your reason..."></textarea>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="closeCancelTripModal()" class="flex-1 py-3 rounded-xl font-black text-slate-600 bg-white border border-slate-200 active:scale-95 transition-transform">Go Back</button>
+                    <button onclick="submitTripCancellation()" class="flex-1 btn-danger-3d !py-3">Confirm Cancel</button>
+                </div>
+            </div>
+        </div>
  
     </div>
  
@@ -1203,10 +1216,20 @@
             destMapInstance: null, destMarkers: [], destRouteSource: false,
             matchMapInstance: null, matchPassengerMarker: null, matchDriverMarker: null, approachInterval: null, driverDistance: null,
             trackMapInstance: null, trackMarkerInstance: null, trackRouteSource: false, trackMapLoaded: false,
+            hasReachedDestination: false, tripStartedAt: null, cancellationReason: '',
             
             selectedDriver: null,
             sortBy: 'best'
         };
+
+        const cancellationOptions = [
+            "Changed my plans",
+            "Wrong destination selected",
+            "Driver/Passenger delayed",
+            "Could not locate pickup/dropoff",
+            "Safety concern",
+            "Other"
+        ];
  
         const abujaDestinations = [
             // First major ones
@@ -2678,6 +2701,75 @@
                 modal.classList.remove('flex');
             }, 300);
         }
+
+        function openCancelTripModal() {
+            const modal = document.getElementById('cancel-trip-modal');
+            const inner = document.getElementById('cancel-trip-inner');
+            const optionsWrap = document.getElementById('cancel-trip-options');
+            const otherField = document.getElementById('cancel-trip-other');
+            const subtitle = document.getElementById('cancel-trip-subtitle');
+            if (!modal || !inner || !optionsWrap || !otherField || !subtitle) return;
+
+            subtitle.innerText = `${state.role === 'driver' ? 'Driver' : 'Passenger'} initiated cancellation. Tell us why.`;
+            otherField.value = '';
+            otherField.classList.add('hidden');
+            state.cancellationReason = '';
+
+            optionsWrap.innerHTML = cancellationOptions.map(reason => `
+                <button onclick="selectCancelReason('${reason.replace(/'/g, "\\'")}')" class="w-full text-left bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50 active:scale-[0.99] transition-all">
+                    ${reason}
+                </button>
+            `).join('');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                inner.classList.remove('scale-95');
+                inner.classList.add('scale-100');
+            }, 10);
+        }
+
+        function selectCancelReason(reason) {
+            state.cancellationReason = reason;
+            const otherField = document.getElementById('cancel-trip-other');
+            if (!otherField) return;
+            if (reason === 'Other') {
+                otherField.classList.remove('hidden');
+                otherField.focus();
+            } else {
+                otherField.classList.add('hidden');
+            }
+        }
+
+        function closeCancelTripModal() {
+            const modal = document.getElementById('cancel-trip-modal');
+            const inner = document.getElementById('cancel-trip-inner');
+            if (!modal || !inner) return;
+
+            modal.classList.add('opacity-0');
+            inner.classList.remove('scale-100');
+            inner.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function submitTripCancellation() {
+            const otherField = document.getElementById('cancel-trip-other');
+            let reason = state.cancellationReason;
+            if (reason === 'Other') {
+                reason = (otherField && otherField.value ? otherField.value.trim() : '');
+            }
+            if (!reason) {
+                showSystemMessage('Please select a cancellation reason.', 'Reason Required', 'error');
+                return;
+            }
+
+            closeCancelTripModal();
+            finalizeTrip('cancelled', reason);
+        }
  
         // --- CAMERA LOGIC --- //
         let videoStream = null;
@@ -3427,6 +3519,9 @@
         // --- IN-RIDE TRACKING SCREEN --- //
         function startTracking() {
             setStep('tracking');
+            state.hasReachedDestination = false;
+            state.tripStartedAt = Date.now();
+            state.cancellationReason = '';
             
             const trackAvatar = document.getElementById('track-avatar');
             const trackName = document.getElementById('track-user-name');
@@ -3483,10 +3578,33 @@
                 }
             }, 300);
         }
+
+        function getDistanceMeters(from, to) {
+            if (!from || !to) return Number.POSITIVE_INFINITY;
+            const toRad = (deg) => deg * (Math.PI / 180);
+            const earthRadius = 6371000;
+            const dLat = toRad(to.lat - from.lat);
+            const dLng = toRad(to.lng - from.lng);
+            const lat1 = toRad(from.lat);
+            const lat2 = toRad(to.lat);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+            return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
  
         function initOrUpdateTrackingMap(loc) {
             const destData = abujaDestinations.find(d => d.area === state.rideDetails.area);
             const destLoc = destData ? [destData.lng, destData.lat] : [loc.lng, loc.lat];
+            const destPoint = destData ? { lat: destData.lat, lng: destData.lng } : { lat: loc.lat, lng: loc.lng };
+            const distanceToDestination = getDistanceMeters(loc, destPoint);
+            const reachedNow = distanceToDestination <= 150;
+
+            if (reachedNow && !state.hasReachedDestination) {
+                state.hasReachedDestination = true;
+                const titleEl = document.getElementById('tracking-status-title');
+                const subtextEl = document.getElementById('tracking-subtext');
+                if (titleEl) titleEl.innerText = 'Arrived at destination';
+                if (subtextEl) subtextEl.innerText = `At ${state.rideDetails.area}`;
+            }
  
             if (!state.trackMapInstance) {
                 state.trackMapInstance = new mapboxgl.Map({
@@ -3599,7 +3717,7 @@
 
         function getPassengerVerificationText() {
             const summary = getPassengerVerificationSummary();
-            return summary.score > 0 ? `Verified User • Ratings ${summary.score}/${summary.total}` : 'Unverified';
+            return summary.score > 0 ? `Verified User • ${summary.score}/${summary.total}` : 'Unverified';
         }
 
         function getDriverVerificationText() {
@@ -3613,33 +3731,52 @@
                 !!state.selectedDriver.phone
             ];
             const score = checks.filter(Boolean).length;
-            return score > 0 ? `Verified User • Ratings ${score}/5` : 'Unverified';
+            return score > 0 ? `Verified User • ${score}/5` : 'Unverified';
         }
- 
-        function endTrip() {
-            // Log Payment/Earning in History & Wallet
-            const price = state.role === 'passenger' ? state.selectedDriver.price : state.rideDetails.price;
-            const dest = state.rideDetails.area;
- 
-            if (state.role === 'passenger') {
-                state.user.wallet.balance -= price;
-                state.user.wallet.history.unshift({
-                    desc: `Ride to ${dest}`,
-                    amount: `-₦${price.toLocaleString()}`,
-                    date: "Just now",
-                    type: "debit"
-                });
-                mockHistory.unshift({ date: 'Just now', role: 'passenger', dest: dest, price: `₦${price.toLocaleString()}`, status: 'Completed' });
-            } else if (state.role === 'driver') {
-                state.user.wallet.balance += price;
-                state.user.wallet.history.unshift({
-                    desc: `Ride to ${dest}`,
-                    amount: `+₦${price.toLocaleString()}`,
-                    date: "Just now",
-                    type: "credit"
-                });
-                mockHistory.unshift({ date: 'Just now', role: 'driver', dest: dest, price: `₦${price.toLocaleString()}`, status: 'Completed' });
+
+        function finalizeTrip(status = 'completed', reason = '') {
+            const price = state.role === 'passenger'
+                ? Number((state.selectedDriver && state.selectedDriver.price) || state.rideDetails.price || 0)
+                : Number(state.rideDetails.price || 0);
+            const dest = state.rideDetails.area || 'Destination';
+            const isCancelled = status === 'cancelled';
+
+            if (state.user && state.user.wallet) {
+                if (!isCancelled) {
+                    if (state.role === 'passenger') {
+                        state.user.wallet.balance -= price;
+                        state.user.wallet.history.unshift({
+                            desc: `Ride to ${dest}`,
+                            amount: `-₦${price.toLocaleString()}`,
+                            date: "Just now",
+                            type: "debit"
+                        });
+                    } else if (state.role === 'driver') {
+                        state.user.wallet.balance += price;
+                        state.user.wallet.history.unshift({
+                            desc: `Ride to ${dest}`,
+                            amount: `+₦${price.toLocaleString()}`,
+                            date: "Just now",
+                            type: "credit"
+                        });
+                    }
+                } else {
+                    state.user.wallet.history.unshift({
+                        desc: `Trip to ${dest} cancelled`,
+                        amount: `₦0`,
+                        date: "Just now",
+                        type: "neutral"
+                    });
+                }
             }
+
+            mockHistory.unshift({
+                date: 'Just now',
+                role: state.role,
+                dest,
+                price: `₦${price.toLocaleString()}`,
+                status: isCancelled ? 'Cancelled' : 'Completed'
+            });
 
             if (state.user) {
                 persistUserSession();
@@ -3649,25 +3786,37 @@
                     destination: dest,
                     pickup: state.rideDetails.pickup,
                     price,
-                    status: 'completed'
+                    status,
+                    cancelledBy: isCancelled ? state.role : '',
+                    cancellationReason: isCancelled ? reason : '',
+                    reachedDestination: state.hasReachedDestination,
+                    tripStartedAt: state.tripStartedAt ? new Date(state.tripStartedAt).toISOString() : '',
+                    tripEndedAt: new Date().toISOString()
                 });
-                syncRecord('WalletTransactions', {
-                    userId: state.user.id,
-                    role: state.role,
-                    type: state.role === 'passenger' ? 'debit' : 'credit',
-                    amount: price,
-                    description: `Ride to ${dest}`,
-                    balanceAfter: state.user.wallet.balance
-                });
+
+                if (!isCancelled) {
+                    syncRecord('WalletTransactions', {
+                        userId: state.user.id,
+                        role: state.role,
+                        type: state.role === 'passenger' ? 'debit' : 'credit',
+                        amount: price,
+                        description: `Ride to ${dest}`,
+                        balanceAfter: state.user.wallet.balance
+                    });
+                }
+
                 syncRecord('Users', {
                     userId: state.user.id,
                     walletBalance: state.user.wallet.balance,
                     walletHistory: state.user.wallet.history
                 }, 'upsert', 'userId', state.user.id);
             }
- 
+
             state.selectedDriver = null;
             state.rideDetails = { pickup: 'International Arrival', area: '', price: 0, seats: '1', departure: 'Leaving now', dropStyle: 'Hub drop', passengerPhoto: null };
+            state.hasReachedDestination = false;
+            state.tripStartedAt = null;
+            state.cancellationReason = '';
             document.getElementById('dest-search-input').value = '';
             
             if (state.trackMapInstance) {
@@ -3678,9 +3827,20 @@
             }
  
             renderHistory();
-            renderProfile(); // Update wallet screen
+            renderProfile();
+            if (isCancelled) {
+                showSystemMessage(`Trip cancelled: ${reason}`, 'Trip Cancelled', 'info');
+            }
             
             setStep('idle', 'home');
+        }
+
+        function endTrip() {
+            if (!state.hasReachedDestination) {
+                openCancelTripModal();
+                return;
+            }
+            finalizeTrip('completed', '');
         }
  
         function renderHistory() {
@@ -3691,7 +3851,7 @@
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-500">
                             <i data-lucide="clock" width="14"></i> ${ride.date}
                         </div>
-                        <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100">${ride.status}</span>
+                        <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full ${ride.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}">${ride.status}</span>
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-2xl border border-slate-100">${ride.role === 'driver' ? '🚗' : '🧳'}</div>
@@ -3710,15 +3870,15 @@
                 document.getElementById('transaction-list').innerHTML = txList.map(tx => `
                     <div class="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100 flex justify-between items-center">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl ${tx.type==='credit'?'bg-green-50 text-green-500':'bg-red-50 text-red-500'} flex items-center justify-center text-xl border ${tx.type==='credit'?'border-green-100':'border-red-100'}">
-                                <i data-lucide="${tx.type==='credit'?'arrow-down-left':'arrow-up-right'}" width="20"></i>
+                            <div class="w-12 h-12 rounded-xl ${tx.type==='credit'?'bg-green-50 text-green-500':(tx.type==='neutral'?'bg-slate-100 text-slate-500':'bg-red-50 text-red-500')} flex items-center justify-center text-xl border ${tx.type==='credit'?'border-green-100':(tx.type==='neutral'?'border-slate-200':'border-red-100')}">
+                                <i data-lucide="${tx.type==='credit'?'arrow-down-left':(tx.type==='neutral'?'minus':'arrow-up-right')}" width="20"></i>
                             </div>
                             <div>
                                 <h3 class="font-black text-slate-800 text-base">${tx.desc}</h3>
                                 <p class="text-[10px] font-bold text-slate-400 mt-0.5">${tx.date}</p>
                             </div>
                         </div>
-                        <div class="font-black text-lg ${tx.type==='credit'?'text-green-500':'text-slate-700'}">${tx.amount}</div>
+                        <div class="font-black text-lg ${tx.type==='credit'?'text-green-500':(tx.type==='neutral'?'text-slate-500':'text-slate-700')}">${tx.amount}</div>
                     </div>
                 `).join('');
             } else {
