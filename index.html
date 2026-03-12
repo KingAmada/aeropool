@@ -1831,12 +1831,38 @@
             }
         }
 
-        function hydrateUserFromBackend(raw, fallbackRole) {
-            const role = raw.role || fallbackRole || state.role || 'passenger';
-            const balance = Number(raw.walletBalance || 0);
-            const walletHistory = Array.isArray(raw.walletHistory) ? raw.walletHistory : [];
+        function normalizeWalletAccountNumber(value) {
+            if (typeof value === 'string') return value;
+            if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+            if (value && typeof value === 'object') {
+                if (typeof value.accountNumber === 'string' || typeof value.accountNumber === 'number') {
+                    return String(value.accountNumber);
+                }
+                if (typeof value.value === 'string' || typeof value.value === 'number') {
+                    return String(value.value);
+                }
+            }
+            return "";
+        }
 
-            state.user = {
+        function formatWalletAccountNumber(value) {
+            const digits = normalizeWalletAccountNumber(value).replace(/\D/g, '');
+            if (!digits) return 'Not available';
+            return digits.replace(/(\d{4})(\d{4})(\d{2,})/, '$1 $2 $3');
+        }
+
+        function normalizeUserState(rawUser, fallbackRole) {
+            const raw = rawUser || {};
+            const role = raw.role || fallbackRole || state.role || 'passenger';
+            const balance = Number(raw.walletBalance ?? raw.wallet?.balance ?? 0);
+            const walletHistory = Array.isArray(raw.walletHistory)
+                ? raw.walletHistory
+                : (Array.isArray(raw.wallet?.history) ? raw.wallet.history : []);
+            const walletAccountNumber = normalizeWalletAccountNumber(
+                raw.walletAccountNumber ?? raw.wallet?.accountNumber
+            ) || ("5770" + Math.floor(100000 + Math.random() * 900000));
+
+            return {
                 id: raw.userId || raw.id || `usr-${Date.now()}`,
                 name: raw.name || 'Poolily User',
                 phone: raw.phone || '',
@@ -1849,12 +1875,17 @@
                 profilePhoto: raw.profilePhoto || null,
                 wallet: {
                     balance: Number.isFinite(balance) ? balance : 0,
-                    accountNumber: raw.walletAccountNumber || "5770" + Math.floor(100000 + Math.random() * 900000),
-                    bank: raw.walletBank || "Stanbic IBTC",
+                    accountNumber: walletAccountNumber,
+                    bank: raw.walletBank || raw.wallet?.bank || "Stanbic IBTC",
                     history: walletHistory
                 },
                 bankDetails: raw.bankDetails || { bankCode: "", accountNumber: "", accountName: "" }
             };
+        }
+
+        function hydrateUserFromBackend(raw, fallbackRole) {
+            const role = raw.role || fallbackRole || state.role || 'passenger';
+            state.user = normalizeUserState(raw, role);
             state.role = role;
             persistUserSession();
         }
@@ -1879,8 +1910,8 @@
                 if (!raw) return;
                 const parsed = JSON.parse(raw);
                 if (!parsed || !parsed.user) return;
-                state.user = parsed.user;
                 state.role = parsed.role || parsed.user.role || null;
+                state.user = normalizeUserState(parsed.user, state.role);
             } catch (_) {}
         }
 
@@ -2603,7 +2634,7 @@
                 if (walletBankInfo) walletBankInfo.classList.add('hidden');
             } else {
                 if (walletBankInfo) walletBankInfo.classList.remove('hidden');
-                document.getElementById('wallet-acc-num').innerText = state.user.wallet.accountNumber.replace(/(\d{4})(\d{4})(\d{2})/, '$1 $2 $3');
+                document.getElementById('wallet-acc-num').innerText = formatWalletAccountNumber(state.user.wallet.accountNumber);
                 document.getElementById('wallet-acc-name').innerText = `Poolily - ${state.user.name}`;
             }
             
