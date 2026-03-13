@@ -3,6 +3,7 @@ window.POOLILY_RUNTIME_CONFIG = {
   mapStyle: "mapbox://styles/mapbox/standard",
   mapDefaultZoom: 14.5,
   mapRouteMaxZoom: 16.5,
+  idTemplateMatchMinScore: 0.78,
   faceMatchMaxDistance: 0.42,
   faceMinDetectionScore: 0.8,
   trackingArrivalRadiusMeters: 50,

@@ -1113,6 +1113,15 @@
             "Polaris Bank", "Providus Bank", "Stanbic IBTC", "Standard Chartered", "Sterling Bank",
             "Taj Bank", "UBA", "Union Bank", "Unity Bank", "VFD MFB", "Wema Bank", "Zenith Bank"
         ];
+        const ID_SAMPLE_LIBRARY = [
+            { type: 'license', label: "Driver's License", src: "./idSamples/Driver's Licence.jpeg" },
+            { type: 'nin', label: 'National ID Card', src: "./idSamples/National-ID.jpg" },
+            { type: 'nin', label: 'NIMC Slip', src: './idSamples/Nimc Slip.png' },
+            { type: 'passport', label: 'Passport Sample', src: './idSamples/Passport Sample.png' },
+            { type: 'passport', label: 'Old Passport', src: './idSamples/Old Passport.jpeg' },
+            { type: 'passport', label: 'Old Passport Complete', src: './idSamples/Old Passport complete.jpeg' }
+        ];
+        const ID_TEMPLATE_MATCH_MIN_SCORE = Number(runtimeConfig.idTemplateMatchMinScore || 0.72);
  
         function formatNaira(value) {
             return `₦${Math.max(0, Math.round(value)).toLocaleString()}`;
@@ -2139,6 +2148,8 @@
  
         let authSelfieData = null;
         let authIdData = null;
+        let authIdTemplateMatch = null;
+        let idSampleSignaturesPromise = null;
  
         // Auth Logic
         function setAuthMode(mode) {
@@ -2197,15 +2208,142 @@
             const status = document.getElementById('auth-id-status');
             if(e.target.files.length > 0) {
                 const file = e.target.files[0];
-                status.innerText = 'Uploaded: ' + file.name;
-                status.className = 'text-green-600 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-white';
                 try {
                     authIdData = await compressImageFile(file);
                 } catch (err) {
                     console.warn('ID compression failed, using original image:', err);
                     authIdData = await readFileAsDataUrl(file);
                 }
+                status.innerText = 'Checking document format...';
+                status.className = 'text-blue-600 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-white';
+                authIdTemplateMatch = null;
+                try {
+                    const result = await inferIdDocumentType(authIdData);
+                    authIdTemplateMatch = result;
+                    const typeSelect = document.getElementById('auth-idType');
+                    if (typeSelect && result && result.confident && result.type) {
+                        typeSelect.value = result.type;
+                        handleIdTypeChange();
+                    }
+                    if (result && result.confident) {
+                        status.innerText = `Detected ${result.label} template (${Math.round(result.score * 100)}%)`;
+                        status.className = 'text-green-600 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-white';
+                    } else if (result && result.label) {
+                        status.innerText = `Closest match is ${result.label}, but the upload is still too different from our ID samples.`;
+                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                    } else {
+                        status.innerText = 'This upload does not match a supported ID sample clearly enough.';
+                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                    }
+                } catch (err) {
+                    console.warn('ID template matching failed:', err);
+                    authIdTemplateMatch = { confident: false, score: 0, type: '', label: '' };
+                    status.innerText = 'Could not verify this document format. Please upload a clearer ID image.';
+                    status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                }
             }
+        }
+
+        function loadImageElement(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error(`Could not load image: ${src}`));
+                img.src = encodeURI(src);
+            });
+        }
+
+        function buildImageSignature(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 32;
+            canvas.width = size;
+            canvas.height = size;
+            if (!ctx) throw new Error('Canvas context unavailable');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+
+            const scale = Math.min(size / img.width, size / img.height);
+            const drawWidth = Math.max(1, Math.round(img.width * scale));
+            const drawHeight = Math.max(1, Math.round(img.height * scale));
+            const offsetX = Math.round((size - drawWidth) / 2);
+            const offsetY = Math.round((size - drawHeight) / 2);
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+            const { data } = ctx.getImageData(0, 0, size, size);
+            const grayscale = [];
+            let total = 0;
+            let edgeTotal = 0;
+            for (let y = 0; y < size; y += 1) {
+                for (let x = 0; x < size; x += 1) {
+                    const idx = (y * size + x) * 4;
+                    const gray = (data[idx] * 0.299) + (data[idx + 1] * 0.587) + (data[idx + 2] * 0.114);
+                    grayscale.push(gray);
+                    total += gray;
+                    if (x > 0) edgeTotal += Math.abs(gray - grayscale[grayscale.length - 2]);
+                    if (y > 0) edgeTotal += Math.abs(gray - grayscale[(y - 1) * size + x]);
+                }
+            }
+            const mean = total / grayscale.length;
+            const hash = grayscale.map((v) => (v > mean ? '1' : '0')).join('');
+            return {
+                hash,
+                mean,
+                edgeDensity: edgeTotal / grayscale.length,
+                aspectRatio: img.width / img.height,
+            };
+        }
+
+        function hammingSimilarity(a, b) {
+            if (!a || !b || a.length !== b.length) return 0;
+            let matches = 0;
+            for (let i = 0; i < a.length; i += 1) {
+                if (a[i] === b[i]) matches += 1;
+            }
+            return matches / a.length;
+        }
+
+        function compareImageSignatures(uploadSig, sampleSig) {
+            const hashScore = hammingSimilarity(uploadSig.hash, sampleSig.hash);
+            const aspectPenalty = Math.min(1, Math.abs(uploadSig.aspectRatio - sampleSig.aspectRatio) / 1.4);
+            const edgePenalty = Math.min(1, Math.abs(uploadSig.edgeDensity - sampleSig.edgeDensity) / 40);
+            const brightnessPenalty = Math.min(1, Math.abs(uploadSig.mean - sampleSig.mean) / 80);
+            return (hashScore * 0.7) + ((1 - aspectPenalty) * 0.15) + ((1 - edgePenalty) * 0.1) + ((1 - brightnessPenalty) * 0.05);
+        }
+
+        async function loadIdSampleSignatures() {
+            if (!idSampleSignaturesPromise) {
+                idSampleSignaturesPromise = Promise.all(ID_SAMPLE_LIBRARY.map(async (sample) => {
+                    const img = await loadImageElement(sample.src);
+                    return { ...sample, signature: buildImageSignature(img) };
+                }));
+            }
+            return idSampleSignaturesPromise;
+        }
+
+        async function inferIdDocumentType(dataUrl) {
+            const [uploadImg, samples] = await Promise.all([
+                loadImageElement(dataUrl),
+                loadIdSampleSignatures()
+            ]);
+            const uploadSignature = buildImageSignature(uploadImg);
+            const scored = samples.map((sample) => ({
+                ...sample,
+                score: compareImageSignatures(uploadSignature, sample.signature)
+            })).sort((a, b) => b.score - a.score);
+
+            const best = scored[0];
+            const runnerUp = scored[1];
+            const scoreGap = best && runnerUp ? (best.score - runnerUp.score) : (best?.score || 0);
+            return {
+                type: best?.type || '',
+                label: best?.label || '',
+                score: best?.score || 0,
+                scoreGap: scoreGap || 0,
+                confident: !!best && best.score >= ID_TEMPLATE_MATCH_MIN_SCORE && scoreGap >= 0.035,
+            };
         }
  
         function handleIdTypeChange() {
@@ -2393,6 +2531,11 @@
                     if (!authIdData) {
                         const status = document.getElementById('auth-id-status');
                         status.innerText = "Please upload ID document";
+                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                        isValid = false;
+                    } else if (!authIdTemplateMatch || !authIdTemplateMatch.confident) {
+                        const status = document.getElementById('auth-id-status');
+                        status.innerText = "Upload a clearer supported ID document. The current image does not match our ID samples closely enough.";
                         status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
                         isValid = false;
                     }
