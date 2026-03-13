@@ -3738,7 +3738,7 @@
                     document.getElementById('search-savings-text').classList.add('hidden');
                 } else {
                     document.getElementById('search-heading').innerText = 'Scanning Airport...';
-                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Loading drivers from database';
+                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Searching returning drivers close to you heading your destination';
                     const comparison = getFareComparison(state.rideDetails.price);
                     const searchSavingsText = document.getElementById('search-savings-text');
                     searchSavingsText.innerText = `You save ${formatNaira(comparison.savings)} vs regular ${formatNaira(comparison.regular)} fare`;
@@ -3829,7 +3829,7 @@
             state.marketplaceDisplayDrivers = sortedDrivers;
 
             if (heading) heading.innerText = `${sortedDrivers.length} Driver${sortedDrivers.length === 1 ? '' : 's'} found`;
-            if (subtitle) subtitle.innerText = sortedDrivers.length ? 'Loaded from your database • pick one & save' : 'No eligible drivers found in your database yet';
+            if (subtitle) subtitle.innerText = sortedDrivers.length ? 'pick one to save money' : 'No eligible drivers found in your database yet';
  
             const list = document.getElementById('marketplace-list');
             if (!sortedDrivers.length) {
@@ -3879,7 +3879,7 @@
                         <span class="text-xs font-black text-green-500 flex items-center gap-1">
                             <i data-lucide="check-circle-2" width="14"></i> ${d.match}% fit
                         </span>
-                        <button onclick="chooseDriver(${d.id}, this)" class="btn-primary-3d !py-2 !px-6 !rounded-xl !text-sm !w-auto">
+                        <button onclick='chooseDriver(${JSON.stringify(String(d.id))}, this)' class="btn-primary-3d !py-2 !px-6 !rounded-xl !text-sm !w-auto">
                             Choose & Save ${formatNaira(comparison.savings)}
                         </button>
                     </div>
@@ -4559,7 +4559,7 @@
             `).join('') : `
                 <div class="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100 text-center">
                     <h3 class="font-black text-slate-800 text-lg">No rides yet</h3>
-                    <p class="text-sm font-bold text-slate-500 mt-2">Completed trips from the database will appear here.</p>
+                    <p class="text-sm font-bold text-slate-500 mt-2">Completed trips will appear here.</p>
                 </div>
             `;
  
