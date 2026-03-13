@@ -308,7 +308,7 @@
         <div id="screen-home" class="app-screen flex flex-col h-full relative p-6 pt-10 animate-pop-in overflow-y-auto no-scrollbar pb-28">
             <div id="home-social-proof-toast" class="social-proof-toast pointer-events-none absolute top-[44%] right-6 z-40 w-[54%] max-w-[230px] opacity-0 translate-x-8">
                 <div class="bg-white border border-slate-200 rounded-2xl px-5 py-4 min-h-[78px] shadow-[0_12px_30px_rgba(15,23,42,0.18)] flex items-center">
-                    <span id="home-social-proof-text" class="text-[13px] leading-snug font-black text-slate-700 block">Passenger just boarded a cheaper ride in Abuja.</span>
+                    <span id="home-social-proof-text" class="text-[13px] leading-snug font-black text-slate-700 block">Live airport rides for verified riders and drivers.</span>
                 </div>
             </div>
             <div class="flex justify-between items-center mb-8 shrink-0">
@@ -588,9 +588,9 @@
                 <h1 id="dest-heading" class="text-3xl sm:text-4xl font-black text-slate-800 mb-3 sm:mb-4 drop-shadow-sm leading-tight whitespace-pre-line shrink-0">
                     Where in the city<br>are you heading?
                 </h1>
-                <p class="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 shrink-0">12,000+ completed airport trips • 4.9/5 rider rating</p>
- 
-                <div class="mt-auto mb-1 sm:mb-2 dest-bottom-sheet glass-panel p-3.5 sm:p-4 relative z-30 shadow-[0_20px_40px_rgba(0,0,0,0.1),12px_12px_24px_#c4d0dc,-12px_-12px_24px_#ffffff]">
+                <p class="text-xs font-black uppercase tracking-wider text-slate-500 mb-2 shrink-0">Live airport pickups • routes update from your current GPS</p>
+
+                <div class="mt-[20vh] sm:mt-auto mb-1 sm:mb-2 dest-bottom-sheet glass-panel p-3.5 sm:p-4 relative z-30 shadow-[0_20px_40px_rgba(0,0,0,0.1),12px_12px_24px_#c4d0dc,-12px_-12px_24px_#ffffff]">
                     <div class="flex items-center gap-3 sm:gap-4 bg-white/70 backdrop-blur-md p-3 rounded-2xl mt-3 shadow-sm relative z-30 border border-white/70">
                         <div class="w-10 h-10 bg-[#e8eef3] rounded-xl flex items-center justify-center shadow-[inset_4px_4px_8px_#c4d0dc,inset_-4px_-4px_8px_#ffffff] shrink-0">
                             <i data-lucide="map-pin" class="text-blue-500" width="18"></i>
@@ -1161,34 +1161,10 @@
         let driverCarCatalog = {};
 
         let socialProofMessages = [
-            "Passenger just boarded a cheaper ride to Wuse.",
-            "Driver just got paid after dropping someone at the airport.",
-            "Driver got ₦13,000 instead of returning empty.",
-            "Driver just saved fuel money on the return leg from the airport.",
-            "Passengers are getting cheaper rides. What are you waiting for?",
-            "Passenger got to Asokoro for just ₦4,000.",
-            "2 days ago, a passenger landed and got to Maitama for just ₦5,000.",
-            "Last week this time, a passenger saved ₦7,000 on one trip.",
-            "Just now: rider matched to Gwarinpa and saved ₦9,500.",
-            "Today: passenger reached Jabi for ₦4,500 instead of ₦11,000+.",
-            "Tonight: airport pickup to Garki locked in at ₦4,000.",
-            "A rider reached Utako for ₦4,500 and skipped surge pricing.",
-            "A passenger shared to Wuye and cut fare by over 40%.",
-            "This morning: first-time user reached Apo for just ₦3,800.",
-            "Yesterday: rider got to Guzape and saved ₦6,200.",
-            "Today: 2 passengers split a ride to Katampe and both saved.",
-            "Airport to Lokogoma just matched below ₦5,000.",
-            "Passenger landed and got to Lugbe at nearly half price.",
-            "Airport run to Life Camp closed at ₦5,200.",
-            "A rider just chose Kubwa and saved more than ₦8,000.",
-            "Late-night passenger reached Kado for a budget fare.",
-            "Return driver to Durumi got paid within minutes.",
-            "Passenger to Central Area matched instantly at a low fare.",
-            "Recent trip: Nyanya route completed at a discounted rate.",
-            "Passenger to Mabushi paid less and arrived sooner.",
-            "Airport to Jahi just cleared at a reduced fare.",
-            "Quick match: rider heading to Dakibiyu saved big.",
-            "A passenger to Galadimawa paid under usual market fare."
+            "Real drivers. Real passengers. No fake marketplace cards.",
+            "Poolily starts live ride tracking from your actual GPS location.",
+            "Verified airport rides powered by your Supabase data.",
+            "Airport return trips, matched from real user records."
         ];
 
         function shuffleSocialProofMessages() {
@@ -1229,6 +1205,9 @@
             currentLocation: { lat: 9.0065, lng: 7.1986 }, // Default Abuja Nnamdi Azikiwe Airport
             watchId: null,
             rideDetails: { pickup: 'International Arrival', area: '', price: 0, seats: '1', departure: 'Leaving now', dropStyle: 'Hub drop', passengerPhoto: null },
+            marketplaceDrivers: [],
+            rideHistory: [],
+            activeRideRequest: null,
             
             destMapInstance: null, destMarkers: [], destRouteSource: false,
             matchMapInstance: null, matchPassengerMarker: null, matchDriverMarker: null, approachInterval: null, driverDistance: null,
@@ -1425,17 +1404,6 @@
             { area: "Zuba", desc: "Other Area", price: 5000, lat: 9.1166, lng: 7.2000 }
         ];
  
-        const mockDrivers = [
-            { id: 1, avatar: "👨🏽", name: "Ibrahim S.", car: "Toyota Camry", plate: "ABJ-204KT", phone: "+2348012345671", rating: 4.9, price: 7500, savings: 4500, eta: "5 min", seats: "2 seats", drop: "Door drop", badges: ["ID verified", "Phone verified", "Plate matched"], departure: "Leaving in 6 mins", departureMins: 6, match: 96 },
-            { id: 2, avatar: "👩🏽", name: "Amaka O.", car: "Honda Accord", plate: "KUJ-884RM", phone: "+2348012345672", rating: 4.8, price: 7000, savings: 5000, eta: "7 min", seats: "1 seat", drop: "Hub drop", badges: ["ID verified", "Phone verified"], departure: "Leaving in 10 mins", departureMins: 10, match: 92 },
-            { id: 3, avatar: "👨🏿", name: "David T.", car: "Lexus ES350", plate: "BWR-117AA", phone: "+2348012345673", rating: 5.0, price: 8500, savings: 3500, eta: "4 min", seats: "3 seats", drop: "Door drop", badges: ["Highest rated", "ID verified", "Shareable trip"], departure: "Leaving in 14 mins", departureMins: 14, match: 88 }
-        ];
- 
-        const mockHistory = [
-            { date: 'Today, 10:45 AM', role: 'passenger', dest: 'Gwarinpa', price: '₦9,500', status: 'Completed' },
-            { date: 'Mar 2nd, 2:15 PM', role: 'driver', dest: 'Wuse', price: '₦7,500', status: 'Completed' }
-        ];
- 
         const pickupCoords = {
             'International Arrival': { lat: 9.00679, lng: 7.26317 },
             'Local Departure': { lat: 9.007, lng: 7.264 },
@@ -1481,6 +1449,7 @@
                 console.warn('Poolily backend URL is not configured. Run setPoolilyBackendUrl("YOUR_SUPABASE_FUNCTION_URL") in console.');
             } else if (state.user) {
                 refreshWalletFromBackend({ silent: true });
+                loadRideHistory({ silent: true }).then(() => renderHistory());
             }
         };
 
@@ -1869,6 +1838,118 @@
             }
         }
 
+        async function loadMarketplaceDrivers(options = {}) {
+            const silent = options.silent !== false;
+            if (!isBackendConfigured()) return [];
+            try {
+                const response = await backendRequest('listMarketplaceDrivers', {
+                    userId: state.user ? state.user.id : '',
+                    limit: 12
+                });
+                state.marketplaceDrivers = Array.isArray(response.drivers) ? response.drivers : [];
+                return state.marketplaceDrivers;
+            } catch (err) {
+                if (!silent) {
+                    showSystemMessage(err.message || 'Could not load drivers from database.', 'Driver Load Failed', 'error');
+                }
+                state.marketplaceDrivers = [];
+                return [];
+            }
+        }
+
+        async function loadRideHistory(options = {}) {
+            const silent = options.silent !== false;
+            if (!state.user || !isBackendConfigured()) {
+                state.rideHistory = [];
+                return [];
+            }
+            try {
+                const response = await backendRequest('getRideHistory', {
+                    userId: state.user.id,
+                    phone: state.user.phone,
+                    limit: 20
+                });
+                state.rideHistory = Array.isArray(response.rides) ? response.rides : [];
+                return state.rideHistory;
+            } catch (err) {
+                if (!silent) {
+                    showSystemMessage(err.message || 'Could not load ride history.', 'History Load Failed', 'error');
+                }
+                state.rideHistory = [];
+                return [];
+            }
+        }
+
+        async function loadOpenRideRequests(options = {}) {
+            const silent = options.silent !== false;
+            if (!isBackendConfigured()) return [];
+            try {
+                const response = await backendRequest('listOpenRideRequests', {
+                    userId: state.user ? state.user.id : '',
+                    limit: 5
+                });
+                const requests = Array.isArray(response.requests) ? response.requests : [];
+                state.activeRideRequest = requests[0] || null;
+                return requests;
+            } catch (err) {
+                if (!silent) {
+                    showSystemMessage(err.message || 'Could not load open ride requests.', 'Request Load Failed', 'error');
+                }
+                state.activeRideRequest = null;
+                return [];
+            }
+        }
+
+        function getInitials(name) {
+            return String(name || '')
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((part) => part.charAt(0).toUpperCase())
+                .join('') || 'U';
+        }
+
+        function buildAvatarMarkup(entity, sizeClass = 'w-12 h-12', textClass = 'text-lg') {
+            const name = entity && entity.name ? entity.name : 'User';
+            const photo = entity && (entity.profilePhoto || entity.profile_photo_url);
+            if (photo) {
+                return `<div class="${sizeClass} rounded-full bg-slate-200 border border-white shadow-sm overflow-hidden shrink-0"><img src="${photo}" alt="${name}" class="w-full h-full object-cover"/></div>`;
+            }
+            return `<div class="${sizeClass} rounded-full bg-blue-100 text-blue-600 border border-white shadow-sm flex items-center justify-center font-black ${textClass} shrink-0">${getInitials(name)}</div>`;
+        }
+
+        function formatRideHistoryDate(value) {
+            if (!value) return 'Recent trip';
+            const date = new Date(value);
+            if (!Number.isFinite(date.getTime())) return 'Recent trip';
+            return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        function deriveDriverMarketplaceData(driver, index) {
+            const baseFare = Math.max(0, Number(state.rideDetails.price || 0));
+            const fareOffset = (index % 3) * 400;
+            const quotedFare = Math.max(2500, baseFare + fareOffset);
+            const name = driver.name || 'Driver';
+            return {
+                ...driver,
+                avatar: buildAvatarMarkup(driver),
+                car: [driver.carYear, driver.carMake, driver.carModel].filter(Boolean).join(' ').trim() || 'Driver vehicle',
+                plate: driver.plateNumber || 'Plate pending',
+                rating: Number(driver.rating || 5),
+                price: quotedFare,
+                eta: `${4 + (index * 2)} min`,
+                seats: `${Math.max(1, 4 - (index % 3))} seat${Math.max(1, 4 - (index % 3)) > 1 ? 's' : ''}`,
+                drop: state.rideDetails.dropStyle || 'Hub drop',
+                badges: Array.isArray(driver.badges) ? driver.badges : ['ID verified', 'Phone verified'],
+                departure: index === 0 ? 'Leaving now' : `Leaving in ${4 + (index * 3)} mins`,
+                departureMins: index === 0 ? 0 : (4 + (index * 3)),
+                match: Math.max(80, 96 - (index * 4)),
+                phone: driver.phone || '',
+                profilePhoto: driver.profilePhoto || null,
+                nameInitials: getInitials(name)
+            };
+        }
+
         function normalizeWalletAccountNumber(value) {
             if (typeof value === 'string') return value;
             if (typeof value === 'number' && Number.isFinite(value)) return String(value);
@@ -1917,7 +1998,7 @@
                     bank: raw.walletBank || raw.wallet?.bank || "Stanbic IBTC",
                     history: walletHistory
                 },
-                bankDetails: raw.bankDetails || { bankCode: "", accountNumber: "", accountName: "" }
+                bankDetails: raw.bankDetails || { bankCode: "", bankName: "", accountNumber: "", accountName: "" }
             };
         }
 
@@ -1980,7 +2061,7 @@
             const idType = document.getElementById('auth-idType').value;
             const idNumber = document.getElementById('auth-idNumber').value.trim();
             const randomAcc = Math.floor(100000 + Math.random() * 900000).toString();
-            const bankCode = document.getElementById('auth-driver-bank') ? document.getElementById('auth-driver-bank').value : "";
+            const bankName = document.getElementById('auth-driver-bank') ? document.getElementById('auth-driver-bank').value : "";
             const bankAccNum = document.getElementById('auth-driver-acc-num') ? document.getElementById('auth-driver-acc-num').value : "";
             const bankAccName = document.getElementById('auth-driver-acc-name') ? document.getElementById('auth-driver-acc-name').value : "";
             const carYear = document.getElementById('auth-car-year') ? document.getElementById('auth-car-year').value : "";
@@ -2006,7 +2087,7 @@
                 walletAccountNumber: "5770" + randomAcc,
                 walletBank: "Stanbic IBTC",
                 walletHistory: [],
-                bankDetails: { bankCode, accountNumber: bankAccNum, accountName: bankAccName },
+                bankDetails: { bankCode: bankName, bankName, accountNumber: bankAccNum, accountName: bankAccName },
                 source: 'webapp',
                 createdAtClient: new Date().toISOString()
             };
@@ -2232,13 +2313,13 @@
                         status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
                         status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
                     } else {
-                        status.innerText = 'This upload does not match a supported ID sample clearly enough.';
+                        status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
                         status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
                     }
                 } catch (err) {
                     console.warn('ID template matching failed:', err);
                     authIdTemplateMatch = { confident: false, score: 0, type: '', label: '' };
-                    status.innerText = 'Could not verify this document format. Please upload a clearer ID image.';
+                    status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
                     status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
                 }
             }
@@ -2347,26 +2428,79 @@
         }
  
         async function detectFacesRobust(imgEl, { forId = false } = {}) {
-            const attempts = [
-                () => faceapi.detectAllFaces(
-                    imgEl,
-                    new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.2 })
-                ).withFaceLandmarks().withFaceDescriptors(),
-                () => faceapi.detectAllFaces(
-                    imgEl,
-                    new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.15 })
-                ).withFaceLandmarks().withFaceDescriptors(),
-                () => faceapi.detectAllFaces(imgEl).withFaceLandmarks().withFaceDescriptors(),
-            ];
+            const runDetectionsOn = async (targetImg) => {
+                const attempts = [
+                    () => faceapi.detectAllFaces(
+                        targetImg,
+                        new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.18 })
+                    ).withFaceLandmarks().withFaceDescriptors(),
+                    () => faceapi.detectAllFaces(
+                        targetImg,
+                        new faceapi.TinyFaceDetectorOptions({ inputSize: 640, scoreThreshold: 0.12 })
+                    ).withFaceLandmarks().withFaceDescriptors(),
+                    () => faceapi.detectAllFaces(
+                        targetImg,
+                        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })
+                    ).withFaceLandmarks().withFaceDescriptors(),
+                    () => faceapi.detectAllFaces(targetImg).withFaceLandmarks().withFaceDescriptors(),
+                ];
 
-            for (const run of attempts) {
-                const faces = await run();
-                if (faces && faces.length) {
-                    return faces.sort((a, b) => {
-                        const aBox = a.detection?.box || { width: 0, height: 0 };
-                        const bBox = b.detection?.box || { width: 0, height: 0 };
-                        return (bBox.width * bBox.height) - (aBox.width * aBox.height);
-                    });
+                for (const run of attempts) {
+                    const faces = await run();
+                    if (faces && faces.length) {
+                        return faces.sort((a, b) => {
+                            const aBox = a.detection?.box || { width: 0, height: 0 };
+                            const bBox = b.detection?.box || { width: 0, height: 0 };
+                            return (bBox.width * bBox.height) - (aBox.width * aBox.height);
+                        });
+                    }
+                }
+                return [];
+            };
+
+            const directFaces = await runDetectionsOn(imgEl);
+            if (directFaces.length) return directFaces;
+
+            if (forId) {
+                const cropCanvas = document.createElement('canvas');
+                const cropCtx = cropCanvas.getContext('2d');
+                if (cropCtx) {
+                    const srcWidth = imgEl.naturalWidth || imgEl.width;
+                    const srcHeight = imgEl.naturalHeight || imgEl.height;
+                    cropCanvas.width = srcWidth;
+                    cropCanvas.height = srcHeight;
+                    cropCtx.drawImage(imgEl, 0, 0, srcWidth, srcHeight);
+
+                    const cropPresets = [
+                        { x: 0, y: 0, w: 0.62, h: 1 },
+                        { x: 0, y: 0, w: 0.72, h: 1 },
+                        { x: 0, y: 0.08, w: 0.76, h: 0.84 },
+                        { x: 0, y: 0.15, w: 0.68, h: 0.7 },
+                        { x: 0.48, y: 0, w: 0.52, h: 1 },
+                    ];
+
+                    for (const preset of cropPresets) {
+                        const testCanvas = document.createElement('canvas');
+                        const testCtx = testCanvas.getContext('2d');
+                        if (!testCtx) continue;
+                        const sx = Math.round(srcWidth * preset.x);
+                        const sy = Math.round(srcHeight * preset.y);
+                        const sw = Math.max(1, Math.round(srcWidth * preset.w));
+                        const sh = Math.max(1, Math.round(srcHeight * preset.h));
+                        testCanvas.width = sw;
+                        testCanvas.height = sh;
+                        testCtx.drawImage(cropCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                        const testImg = new Image();
+                        testImg.src = testCanvas.toDataURL('image/jpeg', 0.92);
+                        await new Promise((resolve) => {
+                            testImg.onload = resolve;
+                            testImg.onerror = resolve;
+                        });
+
+                        const croppedFaces = await runDetectionsOn(testImg);
+                        if (croppedFaces.length) return croppedFaces;
+                    }
                 }
             }
 
@@ -2565,18 +2699,17 @@
                         isValid = false;
                     } else if (!authIdTemplateMatch || !authIdTemplateMatch.confident) {
                         const status = document.getElementById('auth-id-status');
-                        status.innerText = "Upload a clearer supported ID document. The current image does not match our ID samples closely enough.";
+                        status.innerText = "Kindly take a clearer picture, or upload the right ID document.";
                         status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
                         isValid = false;
                     }
     
                     if (state.role === 'driver') {
-                        const bankSelect = document.getElementById('auth-driver-bank');
-                        const accInput = document.getElementById('auth-driver-acc-num');
-                        const bankCode = bankSelect.value;
-                        const bankAccNum = accInput.value;
-                        const carYear = document.getElementById('auth-car-year').value;
-                        const carMake = document.getElementById('auth-car-make').value;
+                    const bankSelect = document.getElementById('auth-driver-bank');
+                    const accInput = document.getElementById('auth-driver-acc-num');
+                    const bankAccNum = accInput.value;
+                    const carYear = document.getElementById('auth-car-year').value;
+                    const carMake = document.getElementById('auth-car-make').value;
                         const carModel = document.getElementById('auth-car-model').value;
                         const carType = document.getElementById('auth-car-type').value;
                         
@@ -2633,6 +2766,7 @@
                     }, 'append', '', '', true);
                 }
 
+                await loadRideHistory({ silent: true });
                 setupDestinationScreen();
                 setStep('destination');
             } catch (err) {
@@ -2799,6 +2933,7 @@
                 btnTrans.className = "flex-1 py-2.5 rounded-2xl font-black text-sm transition-all duration-300 text-slate-500 hover:text-slate-700 scale-95";
                 listRides.classList.remove('hidden');
                 listTrans.classList.add('hidden');
+                if (state.user) loadRideHistory({ silent: true }).then(() => renderHistory());
             } else {
                 btnTrans.className = "flex-1 py-2.5 rounded-2xl font-black text-sm transition-all duration-300 bg-white shadow-[0_4px_10px_rgba(0,0,0,0.05)] text-blue-600 scale-100";
                 btnRides.className = "flex-1 py-2.5 rounded-2xl font-black text-sm transition-all duration-300 text-slate-500 hover:text-slate-700 scale-95";
@@ -2881,8 +3016,8 @@
                 if (carPlateEl) carPlateEl.innerText = state.user.plateNumber || '-';
 
                 // Pre-fill fields if they exist
-                if (state.user.bankDetails && state.user.bankDetails.bankCode) {
-                    document.getElementById('driver-bank-select').value = state.user.bankDetails.bankCode;
+                if (state.user.bankDetails && (state.user.bankDetails.bankName || state.user.bankDetails.bankCode)) {
+                    document.getElementById('driver-bank-select').value = state.user.bankDetails.bankName || state.user.bankDetails.bankCode;
                     document.getElementById('driver-acc-num').value = state.user.bankDetails.accountNumber;
                     document.getElementById('driver-acc-name').value = state.user.bankDetails.accountName;
                 }
@@ -2937,7 +3072,7 @@
                 userId: state.user.id,
                 walletBalance: state.user.wallet.balance,
                 walletHistory: state.user.wallet.history,
-                bankDetails: { bankCode: document.getElementById('driver-bank-select').value, accountNumber: accNum, accountName: document.getElementById('driver-acc-name').value }
+                bankDetails: { bankCode: document.getElementById('driver-bank-select').value, bankName: document.getElementById('driver-bank-select').value, accountNumber: accNum, accountName: document.getElementById('driver-acc-name').value }
             }, 'upsert', 'userId', state.user.id);
             showSystemMessage(`Successfully withdrew ₦${amount.toLocaleString()} to your ${bank} account.`, "Withdrawal Successful", "success");
         }
@@ -3075,8 +3210,8 @@
             inner.style.width = `${Math.min(360, window.innerWidth - 24)}px`;
             inner.style.left = `${Math.max(12, (window.innerWidth - Math.min(360, window.innerWidth - 24)) / 2)}px`;
             inner.style.right = 'auto';
-            inner.style.top = 'auto';
-            inner.style.bottom = window.innerWidth < 768 ? '96px' : '24px';
+            inner.style.top = `${Math.max(24, (window.innerHeight - inner.offsetHeight) / 2)}px`;
+            inner.style.bottom = 'auto';
         }
 
         function showSystemMessage(message, title = 'Notice', type = 'info', anchorTarget = null) {
@@ -3599,11 +3734,11 @@
                 
                 if (state.role === 'driver') {
                     document.getElementById('search-heading').innerText = 'Online & Waiting...';
-                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Listening for passengers';
+                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Listening for real passenger requests';
                     document.getElementById('search-savings-text').classList.add('hidden');
                 } else {
                     document.getElementById('search-heading').innerText = 'Scanning Airport...';
-                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Matching city routes trusted by 12k+ riders';
+                    document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Loading drivers from database';
                     const comparison = getFareComparison(state.rideDetails.price);
                     const searchSavingsText = document.getElementById('search-savings-text');
                     searchSavingsText.innerText = `You save ${formatNaira(comparison.savings)} vs regular ${formatNaira(comparison.regular)} fare`;
@@ -3613,16 +3748,34 @@
     
                 setStep('searching');
     
-                setTimeout(() => {
-                    if(state.role === 'driver') {
-                        setupMatchedDriverScreen();
-                        setStep('matched');
-                    } else {
-                        renderMarketplace();
-                        setStep('marketplace');
+                setTimeout(async () => {
+                    try {
+                        if (state.role === 'driver') {
+                            const requests = await loadOpenRideRequests({ silent: false });
+                            if (!requests.length) {
+                                showSystemMessage('No live passenger requests were found in the database yet.', 'No Requests Yet', 'info', btn);
+                                setStep('destination');
+                                endActionLock('start_searching', btn);
+                                return;
+                            }
+                            const req = requests[0];
+                            state.activeRideRequest = req;
+                            state.rideDetails.pickup = req.pickup || state.rideDetails.pickup;
+                            state.rideDetails.area = req.destination || state.rideDetails.area;
+                            state.rideDetails.price = Number(req.quotedFare || state.rideDetails.price || 0);
+                            state.rideDetails.seats = String(req.seats || 1);
+                            state.rideDetails.dropStyle = req.dropStyle || state.rideDetails.dropStyle;
+                            setupMatchedDriverScreen();
+                            setStep('matched');
+                        } else {
+                            await loadMarketplaceDrivers({ silent: false });
+                            renderMarketplace();
+                            setStep('marketplace');
+                        }
+                    } finally {
+                        endActionLock('start_searching', btn);
                     }
-                    endActionLock('start_searching', btn);
-                }, 2500);
+                }, 1200);
             } catch (err) {
                 console.error('startSearching error', err);
                 showSystemMessage('Something went wrong. Please try again.', 'Request Failed', 'error', btn);
@@ -3639,6 +3792,8 @@
         function renderMarketplace() {
             const filterContainer = document.getElementById('marketplace-filters');
             const marketSavingsBanner = document.getElementById('marketplace-savings-banner');
+            const heading = document.querySelector('#screen-marketplace h1');
+            const subtitle = document.querySelector('#screen-marketplace .text-slate-500.font-bold.text-xs.uppercase.tracking-wider');
             if (filterContainer) {
                 const filters = [
                     { id: 'best', label: 'Best Match' },
@@ -3663,7 +3818,7 @@
                 marketSavingsBanner.classList.remove('hidden');
             }
  
-            let sortedDrivers = [...mockDrivers];
+            let sortedDrivers = state.marketplaceDrivers.map((driver, index) => deriveDriverMarketplaceData(driver, index));
             if (state.sortBy === 'fare') {
                 sortedDrivers.sort((a, b) => a.price - b.price);
             } else if (state.sortBy === 'fastest') {
@@ -3671,17 +3826,28 @@
             } else {
                 sortedDrivers.sort((a, b) => b.match - a.match);
             }
+            state.marketplaceDisplayDrivers = sortedDrivers;
+
+            if (heading) heading.innerText = `${sortedDrivers.length} Driver${sortedDrivers.length === 1 ? '' : 's'} found`;
+            if (subtitle) subtitle.innerText = sortedDrivers.length ? 'Loaded from your database • pick one & save' : 'No eligible drivers found in your database yet';
  
             const list = document.getElementById('marketplace-list');
+            if (!sortedDrivers.length) {
+                list.innerHTML = `
+                    <div class="bg-white rounded-[2rem] p-6 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100 text-center">
+                        <h3 class="text-lg font-black text-slate-800">No drivers available yet</h3>
+                        <p class="text-sm font-bold text-slate-500 mt-2">Seed the database with driver users or have one sign in and go online.</p>
+                    </div>
+                `;
+                return;
+            }
             list.innerHTML = sortedDrivers.map(d => {
                 const comparison = getFareComparison(d.price);
                 return `
                 <div class="bg-white rounded-[2rem] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100">
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-xl bg-[#e8eef3] flex items-center justify-center text-2xl shadow-inner border border-white">
-                                ${d.avatar}
-                            </div>
+                            ${buildAvatarMarkup(d, 'w-12 h-12', 'text-base')}
                             <div>
                                 <h3 class="font-black text-slate-800 leading-tight">${d.name}</h3>
                                 <p class="text-[11px] font-bold text-slate-500">${d.car} • ${d.plate}</p>
@@ -3725,7 +3891,8 @@
         function chooseDriver(id, triggerBtn = null) {
             const btn = triggerBtn || document.activeElement;
             if (!beginActionLock(`choose_driver_${id}`, btn, 'Matching...')) return;
-            state.selectedDriver = mockDrivers.find(d => d.id === id);
+            const driver = (state.marketplaceDisplayDrivers || []).find((d) => String(d.id) === String(id));
+            state.selectedDriver = driver || null;
             if (!state.selectedDriver) {
                 endActionLock(`choose_driver_${id}`, btn);
                 return;
@@ -3835,6 +4002,8 @@
             initMatchMap(false);
             const container = document.getElementById('matched-card-container');
             container.className = 'glass-panel p-6 w-full';
+            const request = state.activeRideRequest;
+            const rider = request && request.rider ? request.rider : { name: 'Passenger', phone: '', profilePhoto: null };
             const passengerChecks = [
                 { label: 'Phone verified', passed: true },
                 { label: 'ID verified', passed: true },
@@ -3857,13 +4026,11 @@
                     <div class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
                     
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="w-16 h-16 rounded-full bg-slate-200 border-2 border-white shadow-md overflow-hidden shrink-0">
-                            <img src="https://ui-avatars.com/api/?name=Sarah+T&background=0D8ABC&color=fff" alt="Passenger" class="w-full h-full object-cover"/>
-                        </div>
+                        ${buildAvatarMarkup(rider, 'w-16 h-16', 'text-lg')}
                         <div>
-                            <h4 class="font-black text-slate-800 text-xl">Sarah T.</h4>
-                            <div class="flex items-center text-xs text-slate-500 font-bold gap-1 mt-0.5">
-                                <i data-lucide="star" class="text-yellow-500" fill="currentColor" width="12"></i> 4.9
+                            <h4 class="font-black text-slate-800 text-xl">${rider.name}</h4>
+                        <div class="flex items-center text-xs text-slate-500 font-bold gap-1 mt-0.5">
+                                <i data-lucide="badge-check" class="text-green-500" width="12"></i> Verified rider
                             </div>
                         </div>
                         <div class="ml-auto text-right">
@@ -3885,7 +4052,7 @@
                             <div>
                                 <p class="text-[10px] uppercase font-bold text-slate-400 leading-tight">Heading to</p>
                                 <p class="text-xs font-black text-slate-700">${state.rideDetails.area}</p>
-                                <p class="text-[10px] font-bold text-blue-500 mt-0.5">Requested: Door Drop</p>
+                                <p class="text-[10px] font-bold text-blue-500 mt-0.5">Requested: ${request && request.dropStyle ? request.dropStyle : 'Door drop'}</p>
                             </div>
                         </div>
                     </div>
@@ -3917,16 +4084,16 @@
             const btn = triggerBtn || document.activeElement;
             if (!beginActionLock('accept_trip', btn, 'Accepting...')) return;
             const container = document.getElementById('matched-card-container');
+            const request = state.activeRideRequest;
+            const rider = request && request.rider ? request.rider : { name: 'Passenger', phone: '', profilePhoto: null };
             container.className = 'glass-panel p-3.5 w-[90%] max-w-[330px] ml-auto';
             container.innerHTML = `
                 <div class="bg-white rounded-2xl p-3.5 shadow-xl border border-slate-100 relative overflow-hidden">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-slate-200 border border-white overflow-hidden shrink-0">
-                            <img src="https://ui-avatars.com/api/?name=Sarah+T&background=0D8ABC&color=fff" alt="Passenger" class="w-full h-full object-cover"/>
-                        </div>
+                        ${buildAvatarMarkup(rider, 'w-10 h-10', 'text-sm')}
                         <div class="min-w-0">
                             <p class="text-[11px] uppercase font-black tracking-wider text-blue-600">Accepted Request</p>
-                            <p class="text-sm font-black text-slate-800 truncate">To ${state.rideDetails.area}</p>
+                            <p class="text-sm font-black text-slate-800 truncate">${rider.name} • To ${state.rideDetails.area}</p>
                         </div>
                         <span class="ml-auto text-sm font-black text-green-600 shrink-0">₦${state.rideDetails.price.toLocaleString()}</span>
                     </div>
@@ -3954,9 +4121,7 @@
                     </h3>
  
                     <div class="flex items-center gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <div class="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-3xl border border-slate-100 shrink-0">
-                            ${d.avatar}
-                        </div>
+                        ${buildAvatarMarkup(d, 'w-14 h-14', 'text-base')}
                         <div class="flex-1">
                             <h4 class="font-black text-slate-800 text-lg">${d.name}</h4>
                             <p class="text-xs font-bold text-slate-500">${d.car} • <span class="uppercase font-black">${d.plate}</span></p>
@@ -4001,20 +4166,27 @@
             document.getElementById('search-subtext').innerHTML = '<i data-lucide="loader-2" class="animate-spin" width="18"></i> Listening for next passenger';
             lucide.createIcons();
  
-            setTimeout(() => {
-                if (state.step === 'searching' && state.role === 'driver') {
-                    setupMatchedDriverScreen();
-                    setStep('matched');
+            setTimeout(async () => {
+                try {
+                    if (state.step === 'searching' && state.role === 'driver') {
+                        const requests = await loadOpenRideRequests({ silent: true });
+                        if (requests.length) {
+                            setupMatchedDriverScreen();
+                            setStep('matched');
+                        } else {
+                            setStep('destination');
+                        }
+                    }
+                } finally {
+                    endActionLock('reject_ride', btn);
                 }
-                endActionLock('reject_ride', btn);
-            }, 3000);
+            }, 1200);
         }
  
         // --- IN-RIDE TRACKING SCREEN --- //
         function startTracking(triggerBtn = null) {
             const btn = triggerBtn || document.getElementById('btn-start-ride');
             if (!beginActionLock('start_tracking', btn, 'Starting...')) return;
-            setStep('tracking');
             state.hasReachedDestination = false;
             state.tripStartedAt = Date.now();
             state.cancellationReason = '';
@@ -4024,11 +4196,12 @@
             const trackVerification = document.getElementById('track-user-verification');
             
             if (state.role === 'driver') {
-                trackAvatar.innerHTML = `<img src="https://ui-avatars.com/api/?name=Sarah+T&background=0D8ABC&color=fff" class="w-full h-full object-cover" alt="Sarah"/>`;
-                trackName.innerText = 'Sarah T.';
+                const rider = state.activeRideRequest && state.activeRideRequest.rider ? state.activeRideRequest.rider : { name: 'Passenger', profilePhoto: null };
+                trackAvatar.innerHTML = buildAvatarMarkup(rider, 'w-full h-full', 'text-lg').replace('rounded-full', 'rounded-full').replace(' shadow-sm', '');
+                trackName.innerText = rider.name;
                 if (trackVerification) trackVerification.innerText = getPassengerVerificationText();
             } else {
-                trackAvatar.innerHTML = state.selectedDriver ? state.selectedDriver.avatar : '👨';
+                trackAvatar.innerHTML = state.selectedDriver ? buildAvatarMarkup(state.selectedDriver, 'w-full h-full', 'text-lg').replace('rounded-full', 'rounded-full').replace(' shadow-sm', '') : '👨';
                 trackName.innerText = state.selectedDriver ? state.selectedDriver.name : 'Driver';
                 if (trackVerification) trackVerification.innerText = getDriverVerificationText();
             }
@@ -4043,9 +4216,6 @@
             }
             
             setTimeout(() => {
-                // Always render the map from the last known location first.
-                initOrUpdateTrackingMap(state.currentLocation);
-
                 if (!("geolocation" in navigator)) {
                     showSystemMessage('GPS is not available on this device/browser.', 'Location Unavailable', 'error', btn);
                     endActionLock('start_tracking', btn);
@@ -4054,29 +4224,31 @@
 
                 navigator.geolocation.getCurrentPosition((pos) => {
                     state.currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    setStep('tracking');
                     initOrUpdateTrackingMap(state.currentLocation);
+
+                    if (state.watchId) {
+                        navigator.geolocation.clearWatch(state.watchId);
+                        state.watchId = null;
+                    }
+
+                    try {
+                        state.watchId = navigator.geolocation.watchPosition(
+                            (position) => {
+                                state.currentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+                                initOrUpdateTrackingMap(state.currentLocation);
+                            },
+                            () => showSystemMessage('Live GPS tracking was interrupted. Check location permission and signal strength.', 'Tracking Paused', 'error', btn),
+                            { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
+                        );
+                    } catch (err) {
+                        showSystemMessage('Could not start live GPS tracking.', 'Tracking Error', 'error', btn);
+                    }
+                    endActionLock('start_tracking', btn);
                 }, () => {
                     showSystemMessage('Unable to get your current GPS position. Please enable precise location and try again.', 'GPS Error', 'error', btn);
-                });
-
-                if (state.watchId) {
-                    navigator.geolocation.clearWatch(state.watchId);
-                    state.watchId = null;
-                }
-
-                try {
-                    state.watchId = navigator.geolocation.watchPosition(
-                        (position) => {
-                            state.currentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
-                            initOrUpdateTrackingMap(state.currentLocation);
-                        },
-                        () => showSystemMessage('Live GPS tracking was interrupted. Check location permission and signal strength.', 'Tracking Paused', 'error', btn),
-                        { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
-                    );
-                } catch (err) {
-                    showSystemMessage('Could not start live GPS tracking.', 'Tracking Error', 'error', btn);
-                }
-                endActionLock('start_tracking', btn);
+                    endActionLock('start_tracking', btn);
+                }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
             }, 300);
         }
 
@@ -4198,11 +4370,11 @@
             let message = "";
             if (state.role === 'passenger' && state.selectedDriver) {
                 const d = state.selectedDriver;
-                message = `I'm on my way to ${state.rideDetails.area} via Poolily! \n\nDriver: ${d.name}\nVehicle: ${d.car} (${d.plate})\nTrack my ride: https://poolily.app/track/demo-1234`;
+                message = `I'm on my way to ${state.rideDetails.area} via Poolily! \n\nDriver: ${d.name}\nVehicle: ${d.car} (${d.plate})`;
             } else if (state.role === 'driver') {
                 const fare = state.rideDetails && state.rideDetails.price ? `₦${Number(state.rideDetails.price).toLocaleString()}` : 'pending fare';
                 const verificationText = getPassengerVerificationText();
-                message = `I accepted a ride to ${state.rideDetails.area} on Poolily.\n\nPassenger status: ${verificationText}\nFare: ${fare}\nTrip share: https://poolily.app/track/demo-1234`;
+                message = `I accepted a ride to ${state.rideDetails.area} on Poolily.\n\nPassenger status: ${verificationText}\nFare: ${fare}`;
             }
             
             if(message) {
@@ -4278,12 +4450,13 @@
                 }
             }
 
-            mockHistory.unshift({
-                date: 'Just now',
+            state.rideHistory.unshift({
                 role: state.role,
                 dest,
-                price: `₦${price.toLocaleString()}`,
-                status: isCancelled ? 'Cancelled' : 'Completed'
+                pickup: state.rideDetails.pickup,
+                price,
+                status: isCancelled ? 'cancelled' : 'completed',
+                tripEndedAt: new Date().toISOString()
             });
 
             if (state.user) {
@@ -4365,24 +4538,30 @@
  
         function renderHistory() {
             // 1. Render Rides List
-            document.getElementById('history-list').innerHTML = mockHistory.map(ride => `
+            const rideItems = Array.isArray(state.rideHistory) ? state.rideHistory : [];
+            document.getElementById('history-list').innerHTML = rideItems.length ? rideItems.map(ride => `
                 <div class="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100">
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-500">
-                            <i data-lucide="clock" width="14"></i> ${ride.date}
+                            <i data-lucide="clock" width="14"></i> ${formatRideHistoryDate(ride.tripEndedAt)}
                         </div>
-                        <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full ${ride.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}">${ride.status}</span>
+                        <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full ${String(ride.status).toLowerCase() === 'cancelled' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}">${String(ride.status || 'completed')}</span>
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-2xl border border-slate-100">${ride.role === 'driver' ? '🚗' : '🧳'}</div>
                         <div class="flex-1">
                             <h3 class="font-black text-slate-800 text-lg">${ride.dest}</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From Airport</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From ${ride.pickup || 'Airport'}</p>
                         </div>
-                        <div class="font-black text-xl text-slate-700">${ride.price}</div>
+                        <div class="font-black text-xl text-slate-700">${formatNaira(ride.price || 0)}</div>
                     </div>
                 </div>
-            `).join('');
+            `).join('') : `
+                <div class="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100 text-center">
+                    <h3 class="font-black text-slate-800 text-lg">No rides yet</h3>
+                    <p class="text-sm font-bold text-slate-500 mt-2">Completed trips from the database will appear here.</p>
+                </div>
+            `;
  
             // 2. Render Full Transaction List
             const txList = (state.user && state.user.wallet && state.user.wallet.history) ? state.user.wallet.history : [];
