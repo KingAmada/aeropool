@@ -1132,6 +1132,8 @@
         let authIdData = null;
         let authIdTemplateMatch = null;
         let idSampleSignaturesPromise = null;
+        let authIdUploadToken = 0;
+        let authIdStatusTimer = null;
  
         // Auth Logic
         function setAuthMode(mode) {
@@ -1185,22 +1187,69 @@
             const err = document.getElementById('auth-selfie-error');
             if(err) { err.classList.add('hidden'); err.classList.remove('flex'); }
         }
+
+        function clearAuthIdStatus() {
+            const status = document.getElementById('auth-id-status');
+            if (!status) return;
+            if (authIdStatusTimer) {
+                clearTimeout(authIdStatusTimer);
+                authIdStatusTimer = null;
+            }
+            status.innerText = '';
+            status.className = 'hidden';
+        }
+
+        function setAuthIdStatus(message, tone, autoHideMs) {
+            const status = document.getElementById('auth-id-status');
+            if (!status) return;
+            if (authIdStatusTimer) {
+                clearTimeout(authIdStatusTimer);
+                authIdStatusTimer = null;
+            }
+
+            const toneClass = tone === 'error'
+                ? 'text-red-500 border-red-200'
+                : tone === 'success'
+                    ? 'text-green-600 border-white'
+                    : 'text-blue-600 border-white';
+
+            status.innerText = message;
+            status.className = `text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border ${toneClass}`;
+
+            if (autoHideMs && autoHideMs > 0) {
+                authIdStatusTimer = setTimeout(() => {
+                    clearAuthIdStatus();
+                }, autoHideMs);
+            }
+        }
  
         async function handleAuthIdUpload(e) {
-            const status = document.getElementById('auth-id-status');
-            if(e.target.files.length > 0) {
-                const file = e.target.files[0];
+            const input = e.target;
+            if(input.files.length > 0) {
+                const file = input.files[0];
+                const uploadToken = ++authIdUploadToken;
+                authIdData = null;
+                authIdTemplateMatch = null;
+                clearError('idType-error');
+                clearError('idNumber-error');
+                clearAuthIdStatus();
+                setAuthIdStatus('Checking document format...', 'info');
                 try {
                     authIdData = await compressImageFile(file);
                 } catch (err) {
                     console.warn('ID compression failed, using original image:', err);
                     authIdData = await readFileAsDataUrl(file);
                 }
-                status.innerText = 'Checking document format...';
-                status.className = 'text-blue-600 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-white';
-                authIdTemplateMatch = null;
+                if (uploadToken !== authIdUploadToken) {
+                    input.value = '';
+                    return;
+                }
                 try {
                     const result = await inferIdDocumentType(authIdData);
+                    if (uploadToken !== authIdUploadToken) {
+                        input.value = '';
+                        return;
+                    }
                     authIdTemplateMatch = result;
                     const typeSelect = document.getElementById('auth-idType');
                     if (typeSelect && result && result.confident && result.type) {
@@ -1208,20 +1257,22 @@
                         handleIdTypeChange();
                     }
                     if (result && result.confident) {
-                        status.innerText = `Detected ${result.label} template (${Math.round(result.score * 100)}%)`;
-                        status.className = 'text-green-600 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-white';
+                        setAuthIdStatus(`Detected ${result.label} template (${Math.round(result.score * 100)}%)`, 'success', 2200);
                     } else if (result && result.label) {
-                        status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
-                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                        setAuthIdStatus('Kindly take a clearer picture, or upload the right ID document.', 'error', 3000);
                     } else {
-                        status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
-                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                        setAuthIdStatus('Kindly take a clearer picture, or upload the right ID document.', 'error', 3000);
                     }
                 } catch (err) {
+                    if (uploadToken !== authIdUploadToken) {
+                        input.value = '';
+                        return;
+                    }
                     console.warn('ID template matching failed:', err);
                     authIdTemplateMatch = { confident: false, score: 0, type: '', label: '' };
-                    status.innerText = 'Kindly take a clearer picture, or upload the right ID document.';
-                    status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                    setAuthIdStatus('Kindly take a clearer picture, or upload the right ID document.', 'error', 3000);
+                } finally {
+                    input.value = '';
                 }
             }
         }
@@ -1595,14 +1646,10 @@
                     if (!tcChecked) { showError('tc-error', 'Must accept Terms & Privacy Policy', null); isValid = false; }
                     
                     if (!authIdData) {
-                        const status = document.getElementById('auth-id-status');
-                        status.innerText = "Please upload ID document";
-                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                        setAuthIdStatus('Please upload ID document', 'error', 3000);
                         isValid = false;
                     } else if (!authIdTemplateMatch || !authIdTemplateMatch.confident) {
-                        const status = document.getElementById('auth-id-status');
-                        status.innerText = "Kindly take a clearer picture, or upload the right ID document.";
-                        status.className = 'text-red-500 text-sm font-black mt-2 text-center bg-white/50 py-1 rounded-full mx-8 border border-red-200';
+                        setAuthIdStatus('Kindly take a clearer picture, or upload the right ID document.', 'error', 3000);
                         isValid = false;
                     }
     
