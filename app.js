@@ -2593,6 +2593,9 @@
 
         function clearDestinationRoutePreview() {
             if (!state.destMapInstance) return;
+            if (state.destMapInstance.getLayer('dest-route-casing')) {
+                state.destMapInstance.removeLayer('dest-route-casing');
+            }
             if (state.destMapInstance.getLayer('dest-route')) {
                 state.destMapInstance.removeLayer('dest-route');
             }
@@ -2600,6 +2603,19 @@
                 state.destMapInstance.removeSource('dest-route');
             }
             state.destRouteSource = false;
+        }
+
+        function getDestinationRoutePadding() {
+            const shell = document.getElementById('app-shell');
+            const sheet = document.querySelector('#screen-destination .dest-bottom-sheet');
+            const shellHeight = shell?.clientHeight || window.innerHeight || 800;
+            const sheetHeight = sheet?.getBoundingClientRect?.().height || 260;
+            return {
+                top: Math.round(shellHeight * 0.22),
+                right: 26,
+                bottom: Math.max(190, Math.round(sheetHeight + 44)),
+                left: 26,
+            };
         }
 
         function updateDestinationRoutePreview() {
@@ -2638,18 +2654,25 @@
                                 data: routeFeature
                             });
                             state.destMapInstance.addLayer({
+                                id: 'dest-route-casing',
+                                type: 'line',
+                                source: 'dest-route',
+                                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                                paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.92 }
+                            });
+                            state.destMapInstance.addLayer({
                                 id: 'dest-route',
                                 type: 'line',
                                 source: 'dest-route',
                                 layout: { 'line-join': 'round', 'line-cap': 'round' },
-                                paint: { 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.8 }
+                                paint: { 'line-color': '#2563eb', 'line-width': 5.5, 'line-opacity': 0.98 }
                             });
                             state.destRouteSource = true;
                         }
 
                         const coordinates = routeGeo.coordinates;
                         const bounds = coordinates.reduce((b, coord) => b.extend(coord), new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-                        state.destMapInstance.fitBounds(bounds, { padding: 60, maxZoom: MAP_ROUTE_MAX_ZOOM });
+                        state.destMapInstance.fitBounds(bounds, { padding: getDestinationRoutePadding(), maxZoom: MAP_ROUTE_MAX_ZOOM });
                     })
                     .catch(err => console.warn('Destination route preview error:', err));
             };
